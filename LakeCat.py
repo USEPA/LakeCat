@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 ctl = pd.read_csv(sys.argv[1])
-#ctl = pd.read_csv('D:/Projects/LakeCat/ControlTable_LakeCat_RD.csv')
+#ctl = pd.read_csv('D:/Projects/LakeCatOutput/ControlTable_LakeCat_RD.csv')
 from datetime import datetime as dt
 import arcpy
 arcpy.CheckOutExtension("spatial")
@@ -46,7 +46,10 @@ for line in range(len(ctl.values)):  # loop through each FullTableName in contro
             
             vpu = np.load('%s/StreamCat_npy/zoneInputs.npy' % NHD_dir).item()
             inputs = np.load('%s/StreamCat_npy/rpuInputs.npy' % NHD_dir).item()
-            outTable = "%s/%s.csv" % (out_dir, name)
+            if metric == 'Elev':
+                outTable = "%s/%s_temp.csv" % (out_dir, name)
+            if accum_type == 'Categorical':   
+                outTable = "%s/%s.csv" % (out_dir, name)
             count = 0
             for zone in inputs.keys():
                 for rpu in inputs[zone]:
@@ -86,7 +89,7 @@ for line in range(len(ctl.values)):  # loop through each FullTableName in contro
             join.rename(columns={'GRIDCODE': 'COMID'}, inplace=True)
             
         print 'ZonalStats Results Complete in : ' + str(dt.now() - start)
-        if not os.path.exists('%s/%s.csv' % (out_dir, metric)): 
+        if not os.path.exists('%s/%s.csv' % (out_dir, metric)):
 
             start2 = dt.now()
             
@@ -113,6 +116,7 @@ for line in range(len(ctl.values)):  # loop through each FullTableName in contro
             if accum_type == 'Continuous':
                 if name == 'Elev': # done by rpu and written to csv already
                     tbl = pd.read_csv(outTable)[['VALUE', 'AREA', 'COUNT','SUM']]
+                    os.path.remove(outTable)
                 else:
                     tbl = dbf2DF(outTable)[['VALUE', 'AREA', 'COUNT','SUM']]
                 join = pd.merge(bas_ras_tbl, tbl, how='left', left_on='COMID', right_on='VALUE')
