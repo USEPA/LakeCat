@@ -47,7 +47,7 @@ for line in range(len(ctl.values)):  # loop through each FullTableName in contro
             vpu = np.load('%s/StreamCat_npy/zoneInputs.npy' % NHD_dir).item()
             inputs = np.load('%s/StreamCat_npy/rpuInputs.npy' % NHD_dir).item()
             if metric == 'Elev':
-                outTable = "%s/%s_temp.csv" % (out_dir, name)
+                outTable = "%s/%s_temp.csv" % (out_dir, name)  # made and later erased after read in
             if accum_type == 'Categorical':   
                 outTable = "%s/%s.csv" % (out_dir, name)
             count = 0
@@ -116,7 +116,7 @@ for line in range(len(ctl.values)):  # loop through each FullTableName in contro
             if accum_type == 'Continuous':
                 if name == 'Elev': # done by rpu and written to csv already
                     tbl = pd.read_csv(outTable)[['VALUE', 'AREA', 'COUNT','SUM']]
-                    os.path.remove(outTable)
+                    os.remove(outTable)
                 else:
                     tbl = dbf2DF(outTable)[['VALUE', 'AREA', 'COUNT','SUM']]
                 join = pd.merge(bas_ras_tbl, tbl, how='left', left_on='COMID', right_on='VALUE')

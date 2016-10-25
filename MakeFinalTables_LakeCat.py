@@ -9,7 +9,7 @@
 import sys, os
 import pandas as pd 
 #from collections import  OrderedDict
-ctl = pd.read_csv(sys.argv[1]) #ctl = pd.read_csv('D:/Projects/LakeCat/ControlTable_LakeCat_RD.csv')
+ctl = pd.read_csv(sys.argv[1]) #ctl = pd.read_csv('D:/Projects/LakeCatOutput/ControlTable_LakeCat_RD.csv')
 #inputs = OrderedDict([('10U','MS'),('10L','MS'),('07','MS'),('11','MS'),('06','MS'),('05','MS'),('08','MS'),\
 #                      ('01','NE'),('02','MA'),('03N','SA'),('03S','SA'),('03W','SA'),('04','GL'),('09','SR'),\
 #                      ('12','TX'),('13','RG'),('14','CO'),('15','CO'),('16','GB'),('17','PN'),('18','CA')])                      
@@ -47,7 +47,7 @@ for table in tables:
             catPct = frontCols[2]
             wsArea = frontCols[3]
             wsPct = frontCols[4] 
-            frontCols = [frontCols[i] for i in [0,1,3,2,4]] #re-order for correct sequence
+            frontCols = [frontCols[i] for i in [0,1,3,2,4,5]] #re-order for correct sequence
             summary = None
             if ctl.summaryfield.ix[ctl.Final_Table_Name == table].any():
                 summary = ctl.summaryfield.ix[ctl.FullTableName == tables[table][var]].item().split(';')         
