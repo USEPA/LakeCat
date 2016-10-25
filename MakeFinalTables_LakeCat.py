@@ -42,7 +42,7 @@ for table in tables:
                 appendMetric = ''    
             conversion = float(ctl.Conversion.ix[ctl.FullTableName == tables[table][var]].values[0])
             tbl = pd.read_csv(inDir + '/%s.csv'%(tables[table][var])) 
-            frontCols = [title for title in tbl.columns for x in ['COMID','AreaSqKm','PctFull'] if x in title and not 'Up' in title]            
+            frontCols = [title for title in tbl.columns for x in ['COMID','AreaSqKm','PctFull','inStreamCat'] if x in title and not 'Up' in title]            
             catArea = frontCols[1]
             catPct = frontCols[2]
             wsArea = frontCols[3]
