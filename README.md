@@ -35,7 +35,7 @@ This is done for each of the 8 directions that a raster cell can be moved, shown
 
 ### Step 3 -- Perform zonal statistics and accumulate
 
-The LakeCat.py script creates tables for each landscape metric summarizing both for individual lake basins and for cumulative upstream watersheds. This process happens independently of the On-Network process and then tables from both processes are appended together.
+The *LakeCat.py* script creates tables for each landscape metric summarizing both for individual lake basins and for cumulative upstream watersheds. This process happens independently of the On-Network process and then tables from both processes are appended together.
 
 ## On_Network Process
 
