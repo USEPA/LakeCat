@@ -11,7 +11,8 @@ To begin, we determine which NHD waterbodies are on the NHD network based on joi
   * Catchment
   * PlusFlowlineVAA
   
-Lakes that are associated to flowlines and can use the methods from StreamCat to accumulate watershed characteristics The remaining waterbodies have gone through the off-network process to define watershed characteristics.
+Lakes that are associated to flowlines and can use the methods from StreamCat to accumulate watershed characteristics The remaining waterbodies have gone through the off-network process to define watershed characteristics. 
+*See the FindIsolatedLakes.py script for details*
 
 ## Off_Network Process
 
@@ -29,4 +30,5 @@ Using adjacent local basins we can find flow connections between them with the A
 This is done for each of the 8 directions that a raster cell can be moved, shown below.  If both conditions are true the value of the basin IDs are saved in a flow table to be used to create full watersheds in the accumulation process.
 
 ![directions](https://cloud.githubusercontent.com/assets/7052993/19816175/222618ce-9cfb-11e6-9290-9c737bb0adb2.PNG)
+
 
