@@ -41,6 +41,8 @@ The LakeCat.py script creates tables for each landscape metric summarizing both 
 
 ### Step 1 -- Find lakes On_Network
 
+![tableconnect2](https://cloud.githubusercontent.com/assets/7052993/19823341/f037171a-9d1c-11e6-84bb-5035685a7b2e.PNG)
+
 The findIsolatedLakes script uses table joins to determine lakes that are in the NHDPlus version 2 network. The table below shows the keys that connect all of the NHDPlusV2 tables.
 
 ![table connections](https://cloud.githubusercontent.com/assets/7052993/19822452/651f14b0-9d18-11e6-90a7-f19cb08f289b.PNG)
