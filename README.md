@@ -51,25 +51,10 @@ Once all of these tables are joined, we can group them by the waterbody COMID. I
 
 StreamCat tables contain summarizations for individual stream catchments and for cumulative upstream watersheds. In order to adjust the catchment metrics, we take all of the associated catchments to each lake and summarize metrics for the entire area that they cover. The *findIsolatedLakes.py* script creates arrays that hold the associated catchment COMIDs with the lakes most downstream catchment COMID. The same accumulation function is used to create summary statistics across all catchments associated with each waterbody, and is merged into the final table with the watershed metrics.
 
+![multfl](https://cloud.githubusercontent.com/assets/7052993/19825114/54100a0a-9d2a-11e6-98b9-6e90e03c3d5e.png)
+*Shows multiple flowlines and associated catchments to a given waterbody*
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+## Issues
 
 
 
