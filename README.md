@@ -39,4 +39,8 @@ The LakeCat.py script creates tables for each landscape metric summarizing both 
 
 ## On_Network Process
 
+### Step 1 -- Find lakes On_Network
 
+The findIsolatedLakes script uses table joins to determine lakes that are in the NHDPlus version 2 network. The 'COMID' field from NHDWaterbodies can be joined with the 'WBAREACOMI' field within the NHDFlowline attribute table. 
+
+![table connections](https://cloud.githubusercontent.com/assets/7052993/19822452/651f14b0-9d18-11e6-90a7-f19cb08f289b.PNG)
