@@ -1,6 +1,6 @@
 # LakeCat
 
-The LakeCat DataSet provides summaries of natural and anthropogenic landscape features for ~2.65 million lake watershed basins within the conterminous USA using the [NHDPlus Version 2](http://www.horizon-systems.com/NHDPlus/NHDPlusV2_data.php) as the geospatial framework. 
+The LakeCat DataSet provides summaries of natural and anthropogenic landscape features for ~377,000 lake watershed basins within the conterminous USA using the [NHDPlus Version 2](http://www.horizon-systems.com/NHDPlus/NHDPlusV2_data.php) as the geospatial framework. 
 
 ## On-Network vs. Off-Network
 
