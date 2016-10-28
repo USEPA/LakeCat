@@ -41,10 +41,38 @@ The *LakeCat.py* script creates tables for each landscape metric summarizing bot
 
 ### Step 1 -- Find lakes On_Network
 
-
-
 The *findIsolatedLakes.py* script uses table joins to determine lakes that are in the NHDPlus version 2 network. The table below shows the keys that connect all of the NHDPlusV2 tables.
 
 ![tableconnect2](https://cloud.githubusercontent.com/assets/7052993/19823341/f037171a-9d1c-11e6-84bb-5035685a7b2e.PNG)
 
 Once all of these tables are joined, we can group them by the waterbody COMID. In each group there can be more than one flowline associated to each waterbody.  Using the 'Hydroseq' attribute, we can find the catchment 'COMID' that is furthest downstream, and use this 'COMID to refer to StreamCat data and obtain summarized characteristics of each landscape layer.  This connection is stored in a lookup table, CATCHMENT COMID <--> WATERBODY COMID.  LakeCat final tables reflect WATERBODY COMID in their COMID field. 
+
+### Step 2 -- Accumulate associated catchments for local area 'Cat' metrics
+
+StreamCat tables contain summarizations for individual stream catchments and for cumulative upstream watersheds. In order to adjust the catchment metrics, we take all of the associated catchments to each lake and summarize metrics for the entire area that they cover. The *findIsolatedLakes.py* script creates arrays that hold the associated catchment COMIDs with the lakes most downstream catchment COMID. The same accumulation function is used to create summary statistics across all catchments associated with each waterbody, and is merged into the final table with the watershed metrics.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
