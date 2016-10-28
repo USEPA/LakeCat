@@ -110,7 +110,7 @@ for table in tables:
                     if table == 'AgMidHiSlopes':
                         final = final.drop(['PctUnknown1Cat','PctUnknown2Cat','PctUnknown1Ws', 'PctUnknown2Ws'], axis=1)
         final = final.set_index('COMID').fillna('NA')
-        # 3 COMIDs that aren't in final tables
+        # 3 COMIDs that aren't in final tables from zone 04
 #        if zone == '04':
 #            rmtbl = pd.read_csv('L:/Priv/CORFiles/Geospatial_Library/Data/Project/SSWR1.1B/FTP_Staging/StreamCat/Documentation/DataProcessingAndQualityAssurance/QA_Files/ProblemStreamsR04.csv')[['COMID']]
         final = final.drop([120053703, 120053725, 167671404],axis=0)
@@ -118,12 +118,3 @@ for table in tables:
         final.to_csv('%s/%s_Final.csv' % (outDir, table))
 print 'All Done.....'
 
-#                    if table == 'RoadStreamCrossings':
-#                        finalNameList = []
-#                        addName = 'SlpWtd'
-#                        fnlname1 = metricName + addName + 'Cat' + appendMetric
-#                        fnlname2 = metricName + addName + 'Ws' + appendMetric                         
-#                        tbl[fnlname1] = tbl['Cat' + addName] / (tbl[catArea] * (tbl[catPct]/100))
-#                        tbl[fnlname2] = tbl['Ws' + addName] / (tbl[wsArea] * (tbl[wsPct]/100)) 
-#                        finalNameList.append(fnlname1)
-#                        finalNameList.append(fnlname2) 
