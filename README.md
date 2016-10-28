@@ -27,11 +27,11 @@ Operating within each raster processing unit (RPU) of the NHDPlus Version 2, all
 
 Using adjacent local basins we can find flow connections between them with the ArcGIS shift tool and the RPU's flow direction raster. The script, LakeConnect.py, shifts the raster cells of each zones local watershed basins and tests if the value of that shifted cell is not the value that it holds, and second, then tests if the flow direction raster value demonstrates that there is flow in the same direction as the direction of the shift.  
 
-![shifted](https://cloud.githubusercontent.com/assets/7052993/19706148/306e4948-9ac5-11e6-9a80-c7e3362f7bc1.PNG)
+![shifted](https://cloud.githubusercontent.com/assets/7052993/19706148/306e4948-9ac5-11e6-9a80-c7e3362f7bc1.PNG)![directions](https://cloud.githubusercontent.com/assets/7052993/19816175/222618ce-9cfb-11e6-9290-9c737bb0adb2.PNG)
 
 This is done for each of the 8 directions that a raster cell can be moved, shown below.  If both conditions are true the value of the basin IDs are saved in a flow table to be used to create full watersheds in the accumulation process.
 
-![directions](https://cloud.githubusercontent.com/assets/7052993/19816175/222618ce-9cfb-11e6-9290-9c737bb0adb2.PNG)
+
 
 ### Step 3 -- Perform zonal statistics and accumulate
 
