@@ -12,6 +12,7 @@ To begin, we determine which NHD waterbodies are on the NHD network based on joi
   * PlusFlowlineVAA
   
 Lakes that are associated to flowlines and can use the methods from StreamCat to accumulate watershed characteristics The remaining waterbodies have gone through the off-network process to define watershed characteristics. 
+
 *See the FindIsolatedLakes.py script for details*
 
 ## Off_Network Process
