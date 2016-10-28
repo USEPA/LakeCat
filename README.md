@@ -57,7 +57,9 @@ StreamCat tables contain summarizations for individual stream catchments and for
 
 ## Issues
 
+While creating this dataset, a small number of lakes had to be left out of our processing model due to one of a few reasons.
 
+### Issue 1
 
 
 
