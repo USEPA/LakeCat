@@ -19,7 +19,7 @@ Lakes that are associated to flowlines through the 'WBAREACOMID' in the NHDFlowl
 
 ### Step 1 -- Create local basins for each lake
 
-Operating within each raster processing unit (RPU) of the NHDPlus Version 2, all off-network lakes were converted to raster for the creation of basins with the ArcGIS Watershed tool. This uses the flow accumulation raster with our lake raster as pour points to create watershed basin rasters. Each of the basins created are a portion of the NHD catchment which the lake falls in and define the local watershed basin for the lake. 
+Operating within each raster processing unit (RPU) of the NHDPlus Version 2, all off-network lakes were converted to raster for the creation of basins with the ArcGIS Watershed tool and use the flow direction raster (fdr) . This uses the fdr with our lake raster as pour points to create watershed basin rasters. Each of the basins created are a portion of the NHD catchment which the lake falls in and define the local watershed basin for the lake. 
 
 ![Off-Network](https://cloud.githubusercontent.com/assets/7052993/19703884/648f7f0e-9aba-11e6-90e0-e909b49f5de2.PNG)
 
@@ -29,7 +29,7 @@ Using adjacent local basins we can find flow connections between them with the A
 
 ![shifted](https://cloud.githubusercontent.com/assets/7052993/19706148/306e4948-9ac5-11e6-9a80-c7e3362f7bc1.PNG)![directions](https://cloud.githubusercontent.com/assets/7052993/19816175/222618ce-9cfb-11e6-9290-9c737bb0adb2.PNG)
 
-This is done for each of the 8 directions that a raster cell can be moved, shown above.  If both conditions are true the value of the basin IDs are saved in a flow table to be used to create full watersheds in the accumulation process.
+This is done for each of the 8 directions that a raster cell can be moved, shown above. If both conditions are true the value of the basin IDs are saved in a flow table to be used to create full watersheds in the accumulation process.
 
 
 
@@ -45,7 +45,7 @@ The *findIsolatedLakes.py* script uses table joins to determine lakes that are i
 
 ![tableconnect2](https://cloud.githubusercontent.com/assets/7052993/19823341/f037171a-9d1c-11e6-84bb-5035685a7b2e.PNG)
 
-Once all of these tables are joined, we can group them by the waterbody COMID. In each group there can be more than one flowline associated to each waterbody.  Using the 'Hydroseq' attribute, we can find the catchment 'COMID' that is furthest downstream, and use this 'COMID to refer to StreamCat data and obtain summarized characteristics of each landscape layer.  This connection is stored in a lookup table, CATCHMENT COMID <--> WATERBODY COMID.  LakeCat final tables reflect WATERBODY COMID in their COMID field. 
+Once all of these tables are joined, we can group them by the waterbody COMID. In each group there can be more than one flowline associated to each waterbody.  Using the 'Hydroseq' attribute, we can find the catchment 'COMID' that is furthest downstream, and use this 'COMID to refer to StreamCat data and obtain summarized characteristics of each landscape layer. This connection is stored in a lookup table, CATCHMENT COMID <--> WATERBODY COMID. LakeCat final tables reflect WATERBODY COMID in their COMID field. 
 
 ### Step 2 -- Accumulate associated catchments for local area 'Cat' metrics
 
@@ -59,8 +59,11 @@ StreamCat tables contain summarizations for individual stream catchments and for
 
 While creating this dataset, a small number of lakes had to be left out of our processing model due to one of a few reasons.
 
-### Issue 1
+### Off-Network Lake displays On-Network accumulation properties
 
+Within the context of all of the NHD data we are using to model lake watersheds, there are some inconsistencies between what is published in the vector format vs the raster format. For the off-network lake basins to be made we rely on the flow direction raster which, at 30 meter resolution, isn't able to account for all of the detail needed to describe areas with low slope. 
+
+After isolating the off-network lakes and creating rasters of lake bodies within each raster processing unit (RPU), we compared the area covered in the basins with the catchment area and found that some basins were created that are significantly larger than the catchment which the lake exists in.
 
 
 
