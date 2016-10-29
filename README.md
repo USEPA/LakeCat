@@ -53,8 +53,7 @@ StreamCat tables contain summarizations for individual stream catchments and for
 
 ![multfl](https://cloud.githubusercontent.com/assets/7052993/19825737/e17463a8-9d31-11e6-9a69-a4d1364b6aea.png)
 
-*Shows multiple flowlines and associated catchments to a given waterbody*
-*Selected flowlines and catchments highlighted in yellow*
+*Shows multiple flowlines and associated catchments to a given waterbody -- highlighted in yellow*
 
 ## Issues
 
