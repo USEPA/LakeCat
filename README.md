@@ -65,6 +65,8 @@ Within the context of all of the NHD data we are using to model lake watersheds,
 
 After isolating the off-network lakes and creating rasters of lake bodies within each raster processing unit (RPU), we compared the area covered in the basins with the catchment area and found that some basins were created that are significantly larger than the catchment which the lake exists in.
 
+![extend](https://cloud.githubusercontent.com/assets/7052993/19867184/4bc650e2-9f60-11e6-94f1-b342f0e6f1ba.PNG)
+
 ### In_Network accumulated watersheds have smaller area than the waterbody
 
 During QA, we noticed that 384 accumulated watersheds for lakes are smaller than the lake itself based on area alone. 
