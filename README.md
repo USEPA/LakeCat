@@ -67,7 +67,7 @@ After isolating the off-network lakes and creating rasters of lake bodies within
 
 ![extend](https://cloud.githubusercontent.com/assets/7052993/19867420/fb79beac-9f60-11e6-8a4d-c2e66a5e221e.PNG)
 
-*I need to learn the association made with flowlines and waterbodies and how they work. There are 758 lakes that got removed in this process and it seems that they should be on-network but don't link up with any flowlines. I'm unsure of how to state this in an intelligent way other than just mention the the waterbody boundary in raster format covers the fdr in a spot that should put it on-network, yet there isn't a flowline to make that connection.*
+*I need to learn the association made with flowlines and waterbodies and how they work. There are 758 lakes that got removed in this process and it seems that they should be on-network but don't link up with any flowlines. I'm unsure of how to state this in an intelligent way other than just mention the the waterbody boundary in raster format covers the fdr in a spot that should put it on-network, yet there isn't a flowline to make that connection. In this case, the lake is in an arid zone and doesn't even exist, and according to google imagery neither does the flowline. So it is an area that is only seasonally containing water features.*
 
 Waterbodies are sometimes very close to flowlines, yet have no association with them. 
 
