@@ -83,7 +83,9 @@ Defining NHD Waterbodies by associated flowlines and ultimately catchments has p
 
 ##QA Methods
 
-
+Lakes outside of the boundaries of the NHDPlusV2 -969 lakes. Removed in the findIsolatedLakes.py script after all isolated lakes are appended together. SelectLayerByLocation_management tool finds all lakes that are "COMPLETELY_WITHIN" and the performs a "SWITCH_SELECTION" to arrive at the lakes that are outside of the boundary and deleted from the file.
 
 On_Net_Cvg_Diffs -- come from the script chkNLWwLakeCat.py comparing the lake area geometry with the geometry of what we use as an on-network catchment basin. This outputs the catchment COMID and associated catchment COMID with the percentage of lake that is uncovered by the basins geometry.
+
+off-network problem lakes -- findProblemLakes.py prints out table where an off-network lake basin's area is larger than the catchment in which the lake is found. This table was used to remove 758 lakes from the IsolatedLakes.shp file
 
