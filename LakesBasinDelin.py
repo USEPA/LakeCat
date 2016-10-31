@@ -21,13 +21,16 @@ from arcpy.sa import *
 arcpy.CheckOutExtension("spatial")
 
 # Set Geoprocessing environments
-arcpy.env.outputCoordinateSystem = "PROJCS['NAD_1983_Albers',GEOGCS['GCS_North_American_1983',DATUM['D_North_American_1983',"\
-                                   "SPHEROID['GRS_1980',6378137.0,298.257222101]],PRIMEM['Greenwich',0.0],UNIT['Degree',0.0174532925199433]],"\
-                                   "PROJECTION['Albers'],PARAMETER['False_Easting',0.0],PARAMETER['False_Northing',0.0],"\
-                                   "PARAMETER['Central_Meridian',-96.0],PARAMETER['Standard_Parallel_1',29.5],PARAMETER['Standard_Parallel_2',45.5],"\
-                                   "PARAMETER['Latitude_Of_Origin',23.0],UNIT['Meter',1.0]],VERTCS['Unknown VCS',VDATUM['Unknown'],PARAMETER['Vertical_Shift',0.0],"\
-                                   "PARAMETER['Direction',1.0],UNIT['User_Defined_Unit',0.01]]"
 
+crs = 'PROJCS["NAD_1983_Contiguous_USA_Albers",GEOGCS["GCS_North_American_1983",'\
+'DATUM["D_North_American_1983",SPHEROID["GRS_1980",6378137.0,298.257222101]],'\
+'PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Albers"],'\
+'PARAMETER["false_easting",0.0],PARAMETER["false_northing",0.0],'\
+'PARAMETER["central_meridian",-96.0],PARAMETER["standard_parallel_1",29.5],'\
+'PARAMETER["standard_parallel_2",45.5],PARAMETER["latitude_of_origin",23.0],'\
+'UNIT["Meter",1.0]]'
+
+arcpy.env.outputCoordinateSystem = crs
 
 NHD_dir = 'D:/NHDPlusV21'                   
 outdir = 'D:/Projects/lakesAnalysis/NHDPlus_Lakes_Basins_Rasters_1'
