@@ -23,6 +23,8 @@ Operating within each raster processing unit (RPU) of the NHDPlus Version 2, all
 
 ![Off-Network](https://cloud.githubusercontent.com/assets/7052993/19703884/648f7f0e-9aba-11e6-90e0-e909b49f5de2.PNG)
 
+*Note here that the off-network lake basin is only a portion of the catchment which it is in.*
+
 ### Step 2 -- Find flow connections between basins
 
 Using adjacent local basins we can find flow connections between them with the ArcGIS shift tool and the RPU's flow direction raster. The script, LakeConnect.py, shifts the raster cells of each zones local watershed basins and tests if the value of that shifted cell is not the value that it holds, and second, then tests if the flow direction raster value demonstrates that there is flow in the same direction as the direction of the shift.  
