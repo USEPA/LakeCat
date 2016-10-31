@@ -87,5 +87,5 @@ Lakes outside of the boundaries of the NHDPlusV2 -969 lakes. Removed in the find
 
 On_Net_Cvg_Diffs -- come from the script chkNLWwLakeCat.py comparing the lake area geometry with the geometry of what we use as an on-network catchment basin. This outputs the catchment COMID and associated catchment COMID with the percentage of lake that is uncovered by the basins geometry.
 
-off-network problem lakes -- findProblemLakes.py prints out table where an off-network lake basin's area is larger than the catchment in which the lake is found. This table was used to remove 758 lakes from the IsolatedLakes.shp file
+off-network problem lakes -- findProblemLakes.py prints out table where an off-network lake basin's area is larger than the catchment in which the lake is found. This table was used to remove 758 lakes from the IsolatedLakes.shp file.
 
