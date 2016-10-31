@@ -13,7 +13,7 @@ To begin, we determine which NHD waterbodies are on the NHD network based on joi
   
 *See the FindIsolatedLakes.py script for methods used*
 
-Lakes that are associated to flowlines through the 'WBAREACOMID' in the NHDFlowline file can use the methods from StreamCat to accumulate watershed characteristics. These will be On_Network Lakes. The remaining waterbodies have gone through the off-network process to define watershed characteristics. 
+Lakes that are associated to flowlines through the 'WBAREACOMID' in the NHDFlowline file can use the methods from StreamCat to accumulate watershed characteristics. These will be On_Network Lakes. The remaining waterbodies have gone through the off-network process to define watershed characteristics, saved as IsolatedLakes.shp file. 
 
 ## Off_Network Process
 
@@ -80,4 +80,10 @@ During QA, we noticed that 384 accumulated watersheds for lakes are smaller than
 ### NHD Catchments cover a smaller area than the NHD Waterbody -- On-Network
 
 Defining NHD Waterbodies by associated flowlines and ultimately catchments has proved impossible in some cases where one catchment is associated to the waterbody and the catchment associated is smaller than the waterbody itself. Thus, the 'cat' metric is not accurate to the basin in which should hold the lake.
+
+##QA Methods
+
+
+
+On_Net_Cvg_Diffs -- come from the script chkNLWwLakeCat.py comparing the lake area geometry with the geometry of what we use as an on-network catchment basin. This outputs the catchment COMID and associated catchment COMID with the percentage of lake that is uncovered by the basins geometry.
 
