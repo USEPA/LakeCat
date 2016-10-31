@@ -23,7 +23,7 @@ Operating within each raster processing unit (RPU) of the NHDPlus Version 2, all
 
 ![Off-Network](https://cloud.githubusercontent.com/assets/7052993/19703884/648f7f0e-9aba-11e6-90e0-e909b49f5de2.PNG)
 
-*Note here that the off-network lake basin is only a portion of the catchment which it is in.*
+*Note that the off-network lake basin is only a portion of the catchment which it is in.*
 
 ### Step 2 -- Find flow connections between basins
 
