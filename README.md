@@ -67,7 +67,7 @@ Within the context of all of the NHD data we are using to model lake watersheds,
 
 After isolating the off-network lakes and creating rasters of lake bodies within each raster processing unit (RPU), we compared the area covered in the basins with the catchment area and found that some basins were created that are significantly larger than the catchment which the lake exists in.
 
-![extend](https://cloud.githubusercontent.com/assets/7052993/19867420/fb79beac-9f60-11e6-8a4d-c2e66a5e221e.PNG)
+![extend](https://cloud.githubusercontent.com/assets/7052993/19867420/fb79beac-9f60-11e6-8a4d-c2e66a5e221e.PNG)![arid](https://cloud.githubusercontent.com/assets/7052993/19869318/0aa3409e-9f69-11e6-9dd8-f005fc9279ba.PNG)
 
 *I need to learn the association made with flowlines and waterbodies and how they work. There are 758 lakes that got removed in this process and it seems that they should be on-network but don't link up with any flowlines. I'm unsure of how to state this in an intelligent way other than just mention the the waterbody boundary in raster format covers the fdr in a spot that should put it on-network, yet there isn't a flowline to make that connection. In this case, the lake is in an arid zone and doesn't even exist, and according to google imagery neither does the flowline. So it is an area that is only seasonally containing water features.*
 
