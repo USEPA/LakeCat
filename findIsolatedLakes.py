@@ -14,15 +14,15 @@ from LakeCat_functions import dbf2DF, makeVPUdict
 # Check out any necessary licenses
 arcpy.CheckOutExtension("spatial")
 
-NHD_dir = 'D:/NHDPlusV21'                    
+nhd = 'D:/NHDPlusV21'                    
 # dictionary to iterate thru NHD folder structure
-inputs = makeVPUdict(NHD_dir)
+inputs = makeVPUdict(nhd)
 #--------------------------------------------------------
-
+outdir = 'D:/Projects/lakesAnalysis/new'
 # !!!DIRECTORIES TO WRITE INFO TO!!!
 # Shapefile or gdb feature layer to store on and off-network lakes
-outfeature = 'D:/Projects/lakesAnalysis/new/NetworkLakes.shp'
-outfeature2 = 'D:/Projects/lakesAnalysis/new/IsolatedLakes.shp'
+outOn = '{}/NetworkLakes.shp'.format(outdir)
+outOff = '{}/IsolatedLakes.shp'.format(outdir)
 
 # count is used when iterating to use arcpy.CopyFeatures_management() tool first
 # pass thru and then arcpy.Append_management() the remaining iterations to add 
@@ -30,32 +30,30 @@ outfeature2 = 'D:/Projects/lakesAnalysis/new/IsolatedLakes.shp'
 count = 0
 for zone in inputs:
     hr = inputs[zone]
-    print 'on region ' + hr + ' and hydro number ' + zone
-    # create directories to NHD data
-    NHDdir = "%s/NHDPlus%s/NHDPlus%s" % (NHD_dir, hr, zone)
-    NHDWaterbody = "%s/NHDSnapshot/Hydrography/NHDWaterbody.shp"%(NHDdir)
-    NHDWaterbodyDBF = "%s/NHDSnapshot/Hydrography/NHDWaterbody.dbf"%(NHDdir)
-    NHDFlowlineDBF = "%s/NHDSnapshot/Hydrography/NHDFlowline.dbf"%(NHDdir)
-    NHDPlusFlowlinVAADBF = '%s/NHDPlusAttributes/PlusFlowlineVAA.dbf'%(NHDdir)
-    NHDCatchmentDBF = '%s/NHDPlusCatchment/Catchment.dbf'%(NHDdir)     
+    nhddir = "%s/NHDPlus%s/NHDPlus%s" % (nhd, hr, zone)
+    
+    #not needed til below for selecting out network/off-network lakes
+    #also add RPU and VPU and at the end add UID
+    NHDWaterbody = "%s/NHDSnapshot/Hydrography/NHDWaterbody.shp"%(nhddir)
+    
     # get waterbodies and select out by FTYPE
-    selStmnt = "\"FTYPE\" IN ( 'LakePond' , 'Reservoir' )"
-    arcpy.MakeFeatureLayer_management(NHDWaterbody, "NHDWaterbody", selStmnt)
+    #selStmnt = "\"FTYPE\" IN ( 'LakePond' , 'Reservoir' )"
+    #arcpy.MakeFeatureLayer_management(NHDWaterbody, "NHDWaterbody", selStmnt)
     #--------------------------------------------------------
-    wb = dbf2DF(NHDWaterbodyDBF)
+    wb = dbf2DF("%s/NHDSnapshot/Hydrography/NHDWaterbody.dbf"%(nhddir))
     wb = wb.loc[wb['FTYPE'].isin(['LakePond','Reservoir'])]
     #--------------------------------------------------------
     # get flowline table into pandas data frame 
-    fl = dbf2DF(NHDFlowlineDBF)
+    fl = dbf2DF("%s/NHDSnapshot/Hydrography/NHDFlowline.dbf"%(nhddir))
     #--------------------------------------------------------
     # get catchment table into pandas data frame 
-    cat = dbf2DF(NHDCatchmentDBF)
+    cat = dbf2DF('%s/NHDPlusCatchment/Catchment.dbf'%(nhddir))
     #--------------------------------------------------------
     flowcat = pd.merge(cat,fl,left_on='FEATUREID',right_on='COMID', how='inner') 
     join = pd.merge(wb,flowcat,left_on='COMID', right_on='WBAREACOMI', how='left')
     #--------------------------------------------------------
     # get NHDPlusFlowlineVAA table into pandas data frame
-    vaa = dbf2DF(NHDPlusFlowlinVAADBF) 
+    vaa = dbf2DF('%s/NHDPlusAttributes/PlusFlowlineVAA.dbf'%(nhddir)) 
     #--------------------------------------------------------
     # Merge VAA table on to joined table of catchment, waterbody, and flowlines
     joinVAA = pd.merge(join,vaa,left_on='COMID_y',right_on='COMID', how='left')
@@ -68,6 +66,7 @@ for zone in inputs:
             group = group[group.HYDROSEQ == hydro]           
             s = pd.DataFrame({'catCOMID':pd.Series([int(group.COMID_y.values[0])]),'wbCOMID':pd.Series([int(group.COMID_x.values[0])])})
             df = df.append(s)
+            
     # convert list values into integers and format to pass into SelectLayerByAttribute function 
     wblist = [int(x) for x in df.wbCOMID.tolist()]            
     offstring = '"COMID" IN (%s)' % wblist   
@@ -76,24 +75,24 @@ for zone in inputs:
     arcpy.SelectLayerByAttribute_management("NHDWaterbody", "NEW_SELECTION", whereclause)
     #add waterbodies to NetworkLakes
     if count == 0:
-       arcpy.CopyFeatures_management('NHDWaterbody', outfeature)
+       arcpy.CopyFeatures_management('NHDWaterbody', outOn)
     if count > 0:
-        arcpy.Append_management("NHDWaterbody",outfeature,"NO_TEST")
+        arcpy.Append_management("NHDWaterbody",outOn,"NO_TEST")
     #Switch Selection
     arcpy.SelectLayerByAttribute_management("NHDWaterbody", "SWITCH_SELECTION")
     #add remaining waterbodies to IsolatedLakes 
     if count == 0:
-       arcpy.CopyFeatures_management ('NHDWaterbody', outfeature2)
+       arcpy.CopyFeatures_management ('NHDWaterbody', outOff)
     if count > 0:
-        arcpy.Append_management("NHDWaterbody",outfeature2,"NO_TEST")
+        arcpy.Append_management("NHDWaterbody",outOff,"NO_TEST")
     arcpy.Delete_management("NHDWaterbody")
     count+=1
 
-bnd_dir = "%s/NHDPlusGlobalData/BoundaryUnit.shp" % NHD_dir
+bnd_dir = "%s/NHDPlusGlobalData/BoundaryUnit.shp" % nhd
     
 # get waterbodies and select out by FTYPE
 arcpy.MakeFeatureLayer_management(bnd_dir, "Boundaries")
-arcpy.MakeFeatureLayer_management(outfeature2, "IsoLakes")
+arcpy.MakeFeatureLayer_management(outOff, "IsoLakes")
 
 # Select the 969 waterbodies that are NOT within RPU boundaries and remove
 arcpy.SelectLayerByLocation_management("IsoLakes", "COMPLETELY_WITHIN", 
