@@ -1,0 +1,93 @@
+---
+title: "LakeMicromaps"
+author: "Marc Weber"
+date: "November 18, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Workaround step to associate lakes with aggregated ecoregions
+```{r, eval=FALSE}
+library(rgdal); library(rgeos);library(GISTools)
+lakes = readOGR('L:/Priv/CORFiles/Geospatial_Library/Data/Project/LakeCat','NHDPlusV21_Lakes')
+lake_cents = coordinates(lakes)
+lakes = SpatialPointsDataFrame(coords = lake_cents, data = lakes@data, proj4string = CRS(proj4string(lakes)))
+
+ageco = readOGR('L:/Priv/ARM Data/Omernik_Ecoregions_And_Aggregated_Ecoregions','Aggr_Ecoregions9_2015')
+head(ageco@data)
+proj4string(ageco)
+proj4string(lakes)
+lakes = spTransform(lakes, CRS(proj4string(ageco)))
+
+OverUpdate <- function(points, polys) {
+      pointpoly = over(points, polys)
+      points@data = data.frame(points@data, pointpoly)
+}
+
+lakes@data = OverUpdate(lakes, ageco)
+head(lakes@data)
+# Did we miss any?
+if (any(is.na(lakes$WSA9))){
+  missing = lakes[is.na(lakes$WSA9),]
+  m = gDistance(missing, ageco, byid=TRUE) 
+  row = apply(m, 2, function(x) which(x==min(x))) 
+  row = sapply(row, "[",1)
+  labels = unlist(ageco@data[row,]$WSA9) 
+  missing$WSA9 <- labels
+  lakes$WSA9[is.na(lakes$WSA9)] = missing$WSA9[match(lakes$COMID[is.na(lakes$WSA9)],missing$COMID)]
+  any(is.na(lakes$WSA9))
+  lakes$WSA9_NAME[is.na(lakes$WSA9_NAME)] = ageco$WSA9_NAME[match(lakes$WSA9[is.na(lakes$WSA9_NAME)],ageco$WSA9)]
+  any(is.na(lakes$WSA9_NAME))
+}
+save.image("C:/Users/mweber/Temp/lakes.RData")
+```
+
+## Link with some LakeCat data and make example micromap
+```{r, message=FALSE, error=FALSE}
+load("C:/Users/mweber/Temp/lakes.RData")
+lakedata = read.csv('L:/Priv/CORFiles/Geospatial_Library/Data/Project/LakeCat/FinalTables/Kffact_Final.csv')
+library(micromap)
+# create map table
+EcoPolys <- create_map_table(ageco, IDcolumn="WSA9_NAME") 
+
+lakedata$WSA_NAME = lakes@data$WSA9_NAME[match(lakedata$COMID, lakes@data$COMID)]
+#now summarize data by aggregated ecoregions
+#tip from Mike McManus via QuickR blog  http://statmethods.wordpress.com/
+# define and name the statistics of interest  
+stats <- function(x)(c(N = length(x), Mean = mean(x)))  
+
+statsq <-function(x)(c(N = length(x), Min = min(x), Q1 = quantile(x,c(.25)),
+                       Median = quantile(x,c(.5)), Q3 = quantile(x,c(.75)),
+                       Max = max(x)))
+
+library(reshape)
+lakes.dfm   <- melt(lakedata,  
+                      #outcome variables  
+                      measure.vars = c("KffactWs"),  
+                      # classification variables  
+                      id.vars = c("WSA_NAME"),  na.rm=TRUE)
+
+
+lakes.dfc <- cast(lakes.dfm, WSA_NAME ~ variable, statsq)
+names(lakes.dfc) <- c("WSA_NAME","KffactWs_N","KffactWs_Min","KffactWs_Q125","KffactWs_Median50","KffactWs_Q375","KffactWs_Max") 
+lakes.dfc$WSA_NAME <- as.character(lakes.dfc$WSA_NAME)
+
+#now make a linked micromap with panels for SO4 and COND
+lakes.dfc$points<-0
+
+mmplot(stat.data=lakes.dfc, 
+       map.data=EcoPolys,
+       map.all=T,
+       # plot.width=11,
+       panel.types=c('map', 'labels', 'box_summary'),
+       panel.data=list(NA,
+                       "WSA_NAME",
+                       list("KffactWs_Min", "KffactWs_Q125", "KffactWs_Median50", "KffactWs_Q375", "KffactWs_Max")),
+       ord.by="KffactWs_Median50", 
+       grouping=3, 
+       median.row=F, 
+       map.link=c("WSA_NAME", 'ID')) 
+```
