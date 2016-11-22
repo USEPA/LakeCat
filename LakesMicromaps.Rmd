@@ -1,8 +1,12 @@
 ---
 title: "LakeMicromaps"
 author: "Marc Weber"
-date: "November 18, 2016"
-output: html_document
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document:
+    theme: yeti
+    highlighted: default 
+    toc: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -46,14 +50,39 @@ save.image("C:/Users/mweber/Temp/lakes.RData")
 ```
 
 ## Link with some LakeCat data and make example micromap
+### Soil Erodibility, Impervious Surfaces, and Road Density for all lakes
 ```{r, message=FALSE, error=FALSE}
 load("C:/Users/mweber/Temp/lakes.RData")
-lakedata = read.csv('L:/Priv/CORFiles/Geospatial_Library/Data/Project/LakeCat/FinalTables/Kffact_Final.csv')
+#load("//aa.ad.epa.gov/ord/COR/Users/M-Z/mweber/Net MyDocuments/Publications/Wiley StatRef Article/MicromapExample_wsa.RData")
+kffact = read.csv('L:/Priv/CORFiles/Geospatial_Library/Data/Project/LakeCat/FinalTables/Kffact_Final.csv')
+head(kffact)
+lakedata = kffact[c(1,10)]
+rm(kffact)
+imp = read.csv('L:/Priv/CORFiles/Geospatial_Library/Data/Project/LakeCat/FinalTables/ImperviousSurfaces2006_Final.csv')
+lakedata$PctImp2006Ws = imp$PctImp2006Ws[match(lakedata$COMID, imp$COMID)]
+rm(imp)
+roaddens = read.csv('L:/Priv/CORFiles/Geospatial_Library/Data/Project/LakeCat/FinalTables/RoadDensity_Final.csv')
+lakedata$RdDensWs = roaddens$RdDensWs[match(lakedata$COMID, roaddens$COMID)]
+rm(roaddens)
+lakedata$PctImp2006Ws[is.na(lakedata$PctImp2006Ws)] = 0
+lakedata$RdDensWs[is.na(lakedata$RdDensWs)] = 0
+# Convert Impervious and Road Density to log scale
+lakedata$PctImp2006Ws[lakedata$PctImp2006Ws > 0] = log10(lakedata$PctImp2006Ws[lakedata$PctImp2006Ws > 0])
+lakedata$RdDensWs[lakedata$RdDensWs > 0] = log10(lakedata$RdDensWs[lakedata$RdDensWs > 0])
 library(micromap)
 # create map table
-EcoPolys <- create_map_table(ageco, IDcolumn="WSA9_NAME") 
-
+wsa.polys <- create_map_table(ageco, 'WSA9_NAME')
+head(wsa.polys)
+#change ID from factor to character
+levels(as.factor(wsa.polys$ID))
+levels(wsa.polys$ID) <- c("Coastal Plains","N. Appalachians","N. Plains","S. Appalachians","S. Plains", 
+                          "T. Plains","Upper Midwest","W. Mountains","Xeric")
+wsa.polys$ID <- as.character(wsa.polys$ID)
 lakedata$WSA_NAME = lakes@data$WSA9_NAME[match(lakedata$COMID, lakes@data$COMID)]
+levels(lakedata$WSA_NAME)
+levels(lakedata$WSA_NAME) <- c("Coastal Plains","N. Appalachians","N. Plains","S. Appalachians","S. Plains", 
+                          "T. Plains","Upper Midwest","W. Mountains","Xeric")
+
 #now summarize data by aggregated ecoregions
 #tip from Mike McManus via QuickR blog  http://statmethods.wordpress.com/
 # define and name the statistics of interest  
@@ -66,28 +95,48 @@ statsq <-function(x)(c(N = length(x), Min = min(x), Q1 = quantile(x,c(.25)),
 library(reshape)
 lakes.dfm   <- melt(lakedata,  
                       #outcome variables  
-                      measure.vars = c("KffactWs"),  
+                      measure.vars = c("KffactWs","PctImp2006Ws","RdDensWs"),  
                       # classification variables  
                       id.vars = c("WSA_NAME"),  na.rm=TRUE)
 
 
 lakes.dfc <- cast(lakes.dfm, WSA_NAME ~ variable, statsq)
-names(lakes.dfc) <- c("WSA_NAME","KffactWs_N","KffactWs_Min","KffactWs_Q125","KffactWs_Median50","KffactWs_Q375","KffactWs_Max") 
+names(lakes.dfc) <- c("WSA_NAME","KffactWs_N","KffactWs_Min","KffactWs_Q125","KffactWs_Median50","KffactWs_Q375","KffactWs_Max",
+                      "PctImp2006Ws_N","PctImp2006Ws_Min","PctImp2006Ws_Q125","PctImp2006Ws_Median50","PctImp2006Ws_Q375","PctImp2006Ws_Max",
+                      "RdDensWs_N","RdDensWs_Min","RdDensWs_Q125","RdDensWs_Median50","RdDensWs_Q375","RdDensWs_Max") 
 lakes.dfc$WSA_NAME <- as.character(lakes.dfc$WSA_NAME)
 
-#now make a linked micromap with panels for SO4 and COND
 lakes.dfc$points<-0
 
 mmplot(stat.data=lakes.dfc, 
-       map.data=EcoPolys,
+       map.data=wsa.polys,
        map.all=T,
-       # plot.width=11,
-       panel.types=c('map', 'labels', 'box_summary'),
+       plot.width=11,
+       panel.types=c('map', 'labels', 'box_summary', 'box_summary', 'box_summary'),
        panel.data=list(NA,
                        "WSA_NAME",
-                       list("KffactWs_Min", "KffactWs_Q125", "KffactWs_Median50", "KffactWs_Q375", "KffactWs_Max")),
+                       list("KffactWs_Min", "KffactWs_Q125", "KffactWs_Median50", "KffactWs_Q375", "KffactWs_Max"),
+                       list("PctImp2006Ws_Min","PctImp2006Ws_Q125","PctImp2006Ws_Median50","PctImp2006Ws_Q375","PctImp2006Ws_Max"),
+                       list("RdDensWs_Min","RdDensWs_Q125","RdDensWs_Median50","RdDensWs_Q375","RdDensWs_Max")),
        ord.by="KffactWs_Median50", 
        grouping=3, 
        median.row=F, 
-       map.link=c("WSA_NAME", 'ID')) 
+       map.link=c("WSA_NAME", 'ID'), 
+       panel.att=list(list(1, header='Light Gray Means\n Highlighted Above'), 
+#                            inactive.border.color=gray(.7), 
+#                            inactive.border.size=2), 
+                      
+                  list(2, header='Aggregated\n Ecoregions', 
+                       align='left', text.size=.6),
+                  
+                  list(3, header='Soil Erodibility',
+                       graph.bgcolor='lightgray',
+                       graph.bar.size = .6),
+                  list(4, header='% Impervious Surfaces',
+                       graph.bgcolor='lightgray',
+                       graph.bar.size = .6),
+                  list(5, header='Road Density',
+                       graph.bgcolor='lightgray',
+                       graph.bar.size = .6)))
+
 ```
