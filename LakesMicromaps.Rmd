@@ -66,9 +66,11 @@ lakedata$RdDensWs = roaddens$RdDensWs[match(lakedata$COMID, roaddens$COMID)]
 rm(roaddens)
 lakedata$PctImp2006Ws[is.na(lakedata$PctImp2006Ws)] = 0
 lakedata$RdDensWs[is.na(lakedata$RdDensWs)] = 0
-# Convert Impervious and Road Density to log scale
-lakedata$PctImp2006Ws[lakedata$PctImp2006Ws > 0] = log10(lakedata$PctImp2006Ws[lakedata$PctImp2006Ws > 0])
-lakedata$RdDensWs[lakedata$RdDensWs > 0] = log10(lakedata$RdDensWs[lakedata$RdDensWs > 0])
+
+# # Convert Impervious and Road Density to log scale
+# lakedata$PctImp2006Ws[lakedata$PctImp2006Ws > 0] = log10(lakedata$PctImp2006Ws[lakedata$PctImp2006Ws > 0])
+# lakedata$RdDensWs[lakedata$RdDensWs > 0] = log10(lakedata$RdDensWs[lakedata$RdDensWs > 0])
+
 library(micromap)
 # create map table
 wsa.polys <- create_map_table(ageco, 'WSA9_NAME')
@@ -138,5 +140,96 @@ mmplot(stat.data=lakes.dfc,
                   list(5, header='Road Density',
                        graph.bgcolor='lightgray',
                        graph.bar.size = .6)))
+```
 
+### Percent Urban, Percent Ag, and Percent Forested for all lakes
+```{r, message=FALSE, error=FALSE}
+load("C:/Users/mweber/Temp/lakes.RData")
+#load("//aa.ad.epa.gov/ord/COR/Users/M-Z/mweber/Net MyDocuments/Publications/Wiley StatRef Article/MicromapExample_wsa.RData")
+nlcd = read.csv('L:/Priv/CORFiles/Geospatial_Library/Data/Project/LakeCat/FinalTables/NLCD2006_Final.csv')
+head(nlcd)
+nlcd$PctUrb = nlcd$PctUrbLo2006Ws + nlcd$PctUrbMd2006Ws + nlcd$PctUrbHi2006Ws
+nlcd$PctAg = nlcd$PctCrop2006Ws
+nlcd$PctFor = nlcd$PctDecid2006Ws + nlcd$PctMxFst2006Ws + nlcd$PctMxFst2006Ws
+lakedata = nlcd[c(1,39:41)]
+
+
+lakedata$PctUrb[is.na(lakedata$PctUrb)] = 0
+lakedata$PctAg[is.na(lakedata$PctAg)] = 0
+lakedata$PctFor[is.na(lakedata$PctFor)] = 0
+
+# # Convert to log scale
+# lakedata$PctUrb = log(lakedata$PctUrb)
+# lakedata$PctAg[lakedata$PctAg > 0] = log(lakedata$PctAg[lakedata$PctAg > 0])
+# lakedata$PctFor[lakedata$PctFor > 0] = log(lakedata$PctFor[lakedata$PctFor > 0])
+
+library(micromap)
+# create map table
+wsa.polys <- create_map_table(ageco, 'WSA9_NAME')
+head(wsa.polys)
+#change ID from factor to character
+levels(as.factor(wsa.polys$ID))
+levels(wsa.polys$ID) <- c("Coastal Plains","N. Appalachians","N. Plains","S. Appalachians","S. Plains", 
+                          "T. Plains","Upper Midwest","W. Mountains","Xeric")
+wsa.polys$ID <- as.character(wsa.polys$ID)
+lakedata$WSA_NAME = lakes@data$WSA9_NAME[match(lakedata$COMID, lakes@data$COMID)]
+levels(lakedata$WSA_NAME)
+levels(lakedata$WSA_NAME) <- c("Coastal Plains","N. Appalachians","N. Plains","S. Appalachians","S. Plains", 
+                          "T. Plains","Upper Midwest","W. Mountains","Xeric")
+
+#now summarize data by aggregated ecoregions
+#tip from Mike McManus via QuickR blog  http://statmethods.wordpress.com/
+# define and name the statistics of interest  
+stats <- function(x)(c(N = length(x), Mean = mean(x)))  
+
+statsq <-function(x)(c(N = length(x), Min = min(x), Q1 = quantile(x,c(.25)),
+                       Median = quantile(x,c(.5)), Q3 = quantile(x,c(.75)),
+                       Max = max(x)))
+
+library(reshape)
+lakes.dfm   <- melt(lakedata,  
+                      #outcome variables  
+                      measure.vars = c("PctUrb","PctAg","PctFor"),  
+                      # classification variables  
+                      id.vars = c("WSA_NAME"),  na.rm=TRUE)
+
+
+lakes.dfc <- cast(lakes.dfm, WSA_NAME ~ variable, statsq)
+names(lakes.dfc) <- c("WSA_NAME","PctUrb_N","PctUrb_Min","PctUrb_Q125","PctUrb_Median50","PctUrb_Q375","PctUrb_Max",
+                      "PctAg_N","PctAg_Min","PctAg_Q125","PctAg_Median50","PctAg_Q375","PctAg_Max",
+                      "PctFor_N","PctFor_Min","PctFor_Q125","PctFor_Median50","PctFor_Q375","PctFor_Max") 
+lakes.dfc$WSA_NAME <- as.character(lakes.dfc$WSA_NAME)
+
+lakes.dfc$points<-0
+
+mmplot(stat.data=lakes.dfc, 
+       map.data=wsa.polys,
+       map.all=T,
+       plot.width=11,
+       panel.types=c('map', 'labels', 'box_summary', 'box_summary', 'box_summary'),
+       panel.data=list(NA,
+                       "WSA_NAME",
+                       list("PctUrb_Min","PctUrb_Q125","PctUrb_Median50","PctUrb_Q375","PctUrb_Max"),
+                       list("PctAg_Min","PctAg_Q125","PctAg_Median50","PctAg_Q375","PctAg_Max"),
+                       list("PctFor_Min","PctFor_Q125","PctFor_Median50","PctFor_Q375","PctFor_Max")),
+       ord.by="PctUrb_Median50", 
+       grouping=3, 
+       median.row=F, 
+       map.link=c("WSA_NAME", 'ID'), 
+       panel.att=list(list(1, header='Light Gray Means\n Highlighted Above'), 
+#                            inactive.border.color=gray(.7), 
+#                            inactive.border.size=2), 
+                      
+                  list(2, header='Aggregated\n Ecoregions', 
+                       align='left', text.size=.6),
+                  
+                  list(3, header='% Urban',
+                       graph.bgcolor='lightgray',
+                       graph.bar.size = .6),
+                  list(4, header='% Ag',
+                       graph.bgcolor='lightgray',
+                       graph.bar.size = .6),
+                  list(5, header='% Forested',
+                       graph.bgcolor='lightgray',
+                       graph.bar.size = .6)))
 ```
