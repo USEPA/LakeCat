@@ -6,9 +6,12 @@ Created on Tue May 31 15:22:43 2016
 """
 
 import os
+import re
+import struct, datetime, decimal, itertools
 import numpy as np
 import pysal as ps
 import pandas as pd
+from osgeo import gdal
 import geopandas as gpd
 from geopandas.tools import sjoin
 from collections import OrderedDict
@@ -16,23 +19,71 @@ from collections import OrderedDict
 ##############################################################################
 
 
-def dbf2DF(dbfile, upper=True):
-    '''
-    __author__ = "Ryan Hill <hill.ryan@epa.gov>"
-                 "Marc Weber <weber.marc@epa.gov>"
-    Reads and converts a dbf file to a pandas data frame using pysal.
+def dbfreader(f):
+    """Returns an iterator over records in a Xbase DBF file.
 
-    Arguments
-    ---------
-    dbfile           : a dbase (.dbf) file
-    '''
-    db = ps.open(dbfile)
-    cols = {col: db.by_col(col) for col in db.header}
-    db.close()  #Close dbf 
-    pandasDF = pd.DataFrame(cols)
-    if upper == True:
-        pandasDF.columns = pandasDF.columns.str.upper() 
-    return pandasDF
+    The first row returned contains the field names.
+    The second row contains field specs: (type, size, decimal places).
+    Subsequent rows contain the data records.
+    If a record is marked as deleted, it is skipped.
+
+    File should be opened for binary reads.
+
+    """
+    # See DBF format spec at:
+    #     http://www.pgts.com.au/download/public/xbase.htm#DBF_STRUCT
+
+    numrec, lenheader = struct.unpack('<xxxxLH22x', f.read(32))    
+    numfields = (lenheader - 33) // 32
+
+    fields = []
+    for fieldno in xrange(numfields):
+        name, typ, size, deci = struct.unpack('<11sc4xBB14x', f.read(32))
+        name = name.replace('\0', '')       # eliminate NULs from string   
+        fields.append((name, typ, size, deci))
+    yield [field[0] for field in fields]
+    yield [tuple(field[1:]) for field in fields]
+
+    terminator = f.read(1)
+    assert terminator == '\r'
+
+    fields.insert(0, ('DeletionFlag', 'C', 1, 0))
+    fmt = ''.join(['%ds' % fieldinfo[2] for fieldinfo in fields])
+    fmtsiz = struct.calcsize(fmt)
+    for i in xrange(numrec):
+        record = struct.unpack(fmt, f.read(fmtsiz))
+        if record[0] != ' ':
+            continue                        # deleted record
+        result = []
+        for (name, typ, size, deci), value in itertools.izip(fields, record):
+            if name == 'DeletionFlag':
+                continue
+            if typ == "N":
+                value = value.replace('\0', '').lstrip()
+                if value == '':
+                    value = 0
+                elif deci:
+                    value = decimal.Decimal(value)
+                else:
+                    value = int(value)
+            elif typ == 'C':
+                value = value.rstrip()                                   
+            elif typ == 'D':
+                y, m, d = int(value[:4]), int(value[4:6]), int(value[6:8])
+                value = datetime.date(y, m, d)
+            elif typ == 'L':
+                value = (value in 'YyTt' and 'T') or (value in 'NnFf' and 'F') or '?'
+            elif typ == 'F':
+                value = float(value)
+            result.append(value)
+        yield result
+        
+def dbf2DF(f, upper=True):
+    data = list(dbfreader(open(f, 'rb')))
+    if upper == False:    
+        return pd.DataFrame(data[2:], columns=data[0])
+    else:
+        return pd.DataFrame(data[2:], columns=map(str.upper,data[0]))
 ##############################################################################
 
     
@@ -204,38 +255,32 @@ def makeRPUdict(directory):
     return rpuinputs
 ##############################################################################
 
-def loadDict(NHD_dir, rpu=False):
-    if rpu == False:
-        if not os.path.exists('%s/StreamCat_npy/zoneInputs.npy' % NHD_dir):
-            inputs = makeVPUdict(NHD_dir)
+def NHD_Dict(directory, unit='VPU'):
+    '''
+    __author__ =  "Rick Debbout <debbout.rick@epa.gov>"
+    Creates an OrderdDict for looping through regions of the NHD RPU zones
+
+    Arguments
+    ---------
+    directory             : the directory contining NHDPlus data at the top level
+    unit                  : Vector or Raster processing units 'VPU' or 'RPU'
+    '''  
+    if unit == 'VPU':
+        if not os.path.exists('%s/StreamCat_npy' % directory):
+            os.mkdir('%s/StreamCat_npy' % directory)    
+        if not os.path.exists('%s/StreamCat_npy/zoneInputs.npy' % directory):
+            inputs = makeVPUdict(directory)
         else:
-            inputs = np.load('%s/StreamCat_npy/zoneInputs.npy' % NHD_dir).item() 
-    if rpu == True:
-        if not os.path.exists('%s/StreamCat_npy/rpuInputs.npy' % NHD_dir):
-            inputs = makeRPUdict(NHD_dir)
+            inputs = np.load('%s/StreamCat_npy/zoneInputs.npy' % directory).item() 
+    if unit == 'RPU':
+        if not os.path.exists('%s/StreamCat_npy' % directory):
+            os.mkdir('%s/StreamCat_npy' % directory)    
+        if not os.path.exists('%s/StreamCat_npy/rpuInputs.npy' % directory):
+            inputs = makeRPUdict(directory)
         else:
-            inputs = np.load('%s/StreamCat_npy/rpuInputs.npy' % NHD_dir).item() 
+            inputs = np.load('%s/StreamCat_npy/rpuInputs.npy' % directory).item() 
     return inputs
-##############################################################################
-    
-    
-def getOnNetLakes(metric, StreamCat, LakeComs):
-    vpuDict = loadDict('D:/NHDPlusV21')
-    for reg in vpuDict:
-        tbl = pd.read_csv('%s/LakeCOMs%s.csv' % (LakeComs,reg))
-        strmCat = pd.read_csv('%s/%s_%s.csv' % (StreamCat, metric, reg))
-        tbl2 = pd.merge(tbl, strmCat.ix[strmCat.COMID.isin(tbl.catCOMID)], left_on='catCOMID', right_on='COMID')
-        tbl2 = tbl2.drop(['COMID','catCOMID'], axis=1)
-        if metric == 'RdCrs':
-            tbl2 = tbl2.drop([x for x in tbl2.columns if 'SlpWtd' in x], axis=1)
-        if metric == 'Elev':
-            tbl2 = tbl2.drop([x for x in tbl2.columns if 'MAX' in x or 'MIN' in x], axis=1)
-        tbl2.rename(columns={'wbCOMID': 'COMID'}, inplace=True)
-        if reg == '06':
-            final = tbl2.copy()
-        else:
-            final = pd.concat([final, tbl2])
-    return final
+
 ##############################################################################    
     
     
@@ -362,4 +407,129 @@ def getOnNetLakes2(metric, StreamCat, LakeComs, npy_files):
             final = tbl2.copy()
         else:
             final = pd.concat([final, tbl2])
-    return final   
+    return final
+
+##############################################################################
+    
+    
+def getOnNetLakes(metric, StreamCat, LakeComs):
+    vpuDict = loadDict('D:/NHDPlusV21')
+    for reg in vpuDict:
+        tbl = pd.read_csv('%s/LakeCOMs%s.csv' % (LakeComs,reg))
+        strmCat = pd.read_csv('%s/%s_%s.csv' % (StreamCat, metric, reg))
+        tbl2 = pd.merge(tbl, strmCat.ix[strmCat.COMID.isin(tbl.catCOMID)], left_on='catCOMID', right_on='COMID')
+        tbl2 = tbl2.drop(['COMID','catCOMID'], axis=1)
+        if metric == 'RdCrs':
+            tbl2 = tbl2.drop([x for x in tbl2.columns if 'SlpWtd' in x], axis=1)
+        if metric == 'Elev':
+            tbl2 = tbl2.drop([x for x in tbl2.columns if 'MAX' in x or 'MIN' in x], axis=1)
+        tbl2.rename(columns={'wbCOMID': 'COMID'}, inplace=True)
+        if reg == '06':
+            final = tbl2.copy()
+        else:
+            final = pd.concat([final, tbl2])
+    return final
+
+##############################################################################
+
+def makeRat(fn):
+    ds = gdal.Open(fn)
+    rb = ds.GetRasterBand(1)
+    nd = rb.GetNoDataValue()
+    data = rb.ReadAsArray()
+    # Get unique values in the band and return counts for COUNT val
+    u = np.array(np.unique(data, return_counts=True))
+    #  remove NoData value
+    u = np.delete(u, np.argwhere(u==nd), axis=1)
+    
+    # Create and populate the RAT
+    rat = gdal.RasterAttributeTable()
+    rat.CreateColumn('VALUE', gdal.GFT_Integer, gdal.GFU_Generic)
+    rat.CreateColumn('COUNT', gdal.GFT_Integer, gdal.GFU_Generic)
+    for i in range(u[0].size):
+        rat.SetValueAsInt(i, 0, int(u[0][i]))
+        rat.SetValueAsInt(i, 1, int(u[1][i]))
+    
+    # Associate with the band
+    rb.SetDefaultRAT(rat)
+    
+    # Close the dataset and persist the RAT
+    ds = None 
+    
+    #return the rat to build DataFrame
+    df = rat_to_df(rat)
+    return df
+       
+##############################################################################
+
+
+def rat_to_df(in_rat):
+    """
+    Given a GDAL raster attribute table, convert to a pandas DataFrame
+    Parameters
+    ----------
+    in_rat : gdal.RasterAttributeTable
+        The input raster attribute table
+    Returns
+    -------
+    df : pd.DataFrame
+        The output data frame
+    """
+    # Read in each column from the RAT and convert it to a series infering
+    # data type automatically
+    s = [pd.Series(in_rat.ReadAsArray(i), name=in_rat.GetNameOfCol(i))
+         for i in xrange(in_rat.GetColumnCount())]
+
+    # Concatenate all series together into a dataframe and return
+    return pd.concat(s, axis=1)
+
+##############################################################################
+
+ 
+def DF2dbf(df, dbf_path, my_specs=None):
+    '''
+    Convert a pandas.DataFrame into a dbf.
+
+    __author__  = "Dani Arribas-Bel <darribas@asu.edu> "
+    ...
+
+    Arguments
+    ---------
+    df          : DataFrame
+                  Pandas dataframe object to be entirely written out to a dbf
+    dbf_path    : str
+                  Path to the output dbf. It is also returned by the function
+    my_specs    : list
+                  List with the field_specs to use for each column.
+                  Defaults to None and applies the following scheme:
+                    * int: ('N', 14, 0)
+                    * float: ('N', 14, 14)
+                    * str: ('C', 14, 0)
+    '''
+    if my_specs:
+        specs = my_specs
+    else:
+        type2spec = {int: ('N', 20, 0),
+                     np.int64: ('N', 20, 0),
+                     float: ('N', 36, 15),
+                     np.float64: ('N', 36, 15),
+                     str: ('C', 14, 0),
+                     np.int32: ('N', 20, 0)
+                     }
+        types = [type(df[i].iloc[0]) for i in df.columns]
+        specs = [type2spec[t] for t in types]
+    db = ps.open(dbf_path, 'w')
+    db.header = list(df.columns)
+    db.field_spec = specs
+    for i, row in df.T.iteritems():
+        db.write(row)
+    db.close()
+    return dbf_path
+    
+##############################################################################
+    
+
+def purge(directory, pattern):
+    for f in os.listdir(directory):
+        if re.search(pattern, f):
+            os.remove(os.path.join(directory, f))
