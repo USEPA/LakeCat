@@ -69,8 +69,11 @@ def dbfreader(f):
             elif typ == 'C':
                 value = value.rstrip()                                   
             elif typ == 'D':
-                y, m, d = int(value[:4]), int(value[4:6]), int(value[6:8])
-                value = datetime.date(y, m, d)
+                try:
+                    y, m, d = int(value[:4]), int(value[4:6]), int(value[6:8])
+                    value = datetime.date(y, m, d)
+                except:
+                    value = None
             elif typ == 'L':
                 value = (value in 'YyTt' and 'T') or (value in 'NnFf' and 'F') or '?'
             elif typ == 'F':
@@ -188,9 +191,7 @@ def swapper(coms, upStream):
     indices = bsort[apos]
     return indices
 ##############################################################################
-    
-    
-numpy_dir = 'D:/Projects/lakesAnalysis/npy_710/StreamCat_npy/bastards'
+
 
 def findUpstreamNpy(com):  # Unpacks Numpy files describing the array of upstream COMID's for each catchment in NHD
     comids = np.load(numpy_dir + '/comids.npy')
@@ -533,3 +534,54 @@ def purge(directory, pattern):
     for f in os.listdir(directory):
         if re.search(pattern, f):
             os.remove(os.path.join(directory, f))
+            
+##############################################################################
+
+
+def updateSinks(wbDF,flDF):
+    flow = flDF.set_index('COMID')
+    wbDF = wbDF.ix[wbDF.COMID_sink.unique()]
+    bodies = wbDF.set_index('COMID_sink')
+    sinks = bodies.loc[bodies.SOURCEFC.notnull()][['COMID']]
+    sinks.rename(columns={'COMID': 'WBAREACOMI'}, inplace=True)
+    flow.update(sinks)
+    flow.WBAREACOMI = flow.WBAREACOMI.astype(np.int64)
+    return flow.reset_index(level=0)
+
+##############################################################################
+
+
+def NHDTblMerge(nhd, unit):
+    wbShp = gpd.read_file("%s/NHDSnapshot/Hydrography/NHDWaterbody.shp"%(nhd))
+    wbShp.columns = wbShp.columns[:-1].str.upper().tolist() + ['geometry'] 
+    wbShp = wbShp[['AREASQKM','COMID','FTYPE','geometry']]
+    wbShp = wbShp.loc[wbShp['FTYPE'].isin(['LakePond','Reservoir'])]
+    wbs = sjoin(wbShp, unit, op='within')[['AREASQKM','COMID','FTYPE',
+                                            'UnitID','geometry']]
+    wbs.rename(columns={'UnitID': 'VPU'}, inplace=True)
+    sinks = gpd.read_file("%s/NHDPlusBurnComponents/"\
+                        "Sink.shp"%(nhd))[['FEATUREID','SOURCEFC','geometry']]
+    sinks = sinks.ix[sinks.SOURCEFC == 'NHDFlowline']
+    sinks.rename(columns={'FEATUREID': 'COMID_sink'}, inplace=True)
+    wbs = sjoin(wbs, sinks, how='left', op='intersects').drop('index_right',
+                                                                        axis=1)
+    fl = dbf2DF("%s/NHDSnapshot/Hydrography/NHDFlowline.dbf"%(nhd))[['COMID', 
+                                                                'WBAREACOMI']]
+    fl = updateSinks(wbs,fl)
+    cat = gpd.read_file('%s/NHDPlusCatchment/Catchment.shp'%(nhd)).drop(
+                        ['GRIDCODE', 'SOURCEFC'], axis=1)
+    cat.columns = cat.columns[:-1].str.upper().tolist() + ['geometry']                         
+    vaa = dbf2DF('%s/NHDPlusAttributes/PlusFlowlineVAA.dbf'%(nhd))[['COMID',
+                                                                    'HYDROSEQ']]        
+    final = pd.merge(cat.drop('geometry', axis=1),fl,left_on='FEATUREID',
+                       right_on='COMID',how='inner')
+    final = pd.merge(wbs.drop('geometry',axis=1),final,left_on='COMID',
+                       right_on='WBAREACOMI',how='left',
+                       suffixes=('_wb','_cat'))
+    final = pd.merge(final,vaa,left_on='COMID_cat',
+                       right_on='COMID',how='left')
+    final.HYDROSEQ = final.HYDROSEQ.fillna(final.HYDROSEQ.max() + 1)
+    return wbs, cat, final  
+
+##############################################################################
+          
