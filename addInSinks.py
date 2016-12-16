@@ -47,10 +47,10 @@ def main (NHDdir, outdir):
     print 'Total OnNet lakes: %s' % str(count)
 
 if __name__ == '__main__':
-
-    sys.path.append(sys.argv[3])
+    # run: python addInSinks.py 'path/to/NHD' 'new/path/to/write' 'path/to/LakeCat
+    sys.path.append(sys.argv[3]) # 'path/to/LakeCat
     from LakeCat_functions import NHDtblMerge, NHDdict
     NHDdir = sys.argv[1]
     outdir = sys.argv[2]
-    # reads main('path/to/NHD', 'new/path/to/write', 'path/to/LakeCat')
+    # reads main('path/to/NHD', 'new/path/to/write')
     main(NHDdir, outdir)
