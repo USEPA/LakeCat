@@ -434,6 +434,15 @@ def getOnNetLakes(metric, StreamCat, LakeComs):
 ##############################################################################
 
 def makeRat(fn):
+    '''
+    __author__ =  "Matt Gregory <matt.gregory@oregonstate.edu >"
+    Adds a Raster Attribute Table to the .tif.aux.xml file, then passes those
+    values to rat_to_df function to return the RAT in a pandas DataFrame.
+
+    Arguments
+    ---------
+    fn               : raster filename
+    '''
     ds = gdal.Open(fn)
     rb = ds.GetRasterBand(1)
     nd = rb.GetNoDataValue()
@@ -466,6 +475,7 @@ def makeRat(fn):
 
 def rat_to_df(in_rat):
     """
+    __author__ =  "Matt Gregory <matt.gregory@oregonstate.edu >"
     Given a GDAL raster attribute table, convert to a pandas DataFrame
     Parameters
     ----------
@@ -531,6 +541,17 @@ def DF2dbf(df, dbf_path, my_specs=None):
     
 
 def purge(directory, pattern):
+    '''
+    __author__ =  "Rick Debbout <debbout.rick@epa.gov>"
+    Clears directory of created rasters that will need to be re-written due to 
+    holding on-network like properties, i.e basins created are larger than the 
+    associated catchment.
+
+    Arguments
+    ---------
+    directory           : directory to be cleared
+    pattern             : string value to find in filename for removal
+    '''
     for f in os.listdir(directory):
         if re.search(pattern, f):
             os.remove(os.path.join(directory, f))
@@ -539,6 +560,17 @@ def purge(directory, pattern):
 
 
 def updateSinks(wbDF,flDF):
+    '''
+    __author__ =  "Rick Debbout <debbout.rick@epa.gov>"
+    Updates the WBARECOMI field in the NHDFlowline GeoDatFrame where NHDSinks
+    intersect with NHDWaterbodies. Not currently held in the NHDPlusV21, but 
+    we can process the waterbodies with our on-network approach.
+
+    Arguments
+    ---------
+    wbDF    : Metric name
+    flDF    : Location of intermediate StreamCat csv files
+    '''
     flow = flDF.set_index('COMID')
     wbDF = wbDF.ix[wbDF.COMID_sink.unique()]
     bodies = wbDF.set_index('COMID_sink')
@@ -552,22 +584,47 @@ def updateSinks(wbDF,flDF):
 
 
 def NHDTblMerge(nhd, unit):
+    '''
+    __author__ =  "Rick Debbout <debbout.rick@epa.gov>"
+    Merges all of the NHD tables needed to find on-network lakes. Returns the 
+    GeoDataFrames that will be used to find off-network lakes. Attribute fields
+    COMID, WBARECOMI, and FEATUREID are used to link waterbodies to catchments.
+
+    Arguments
+    ---------
+    nhd        : string value of prefix to NHD directory
+    unit       : GeoDataFrame of Vector Processing Unit
+    
+    Returns
+    ---------
+    wbs        : GeoDataFrame of NHDWaterbodies within the VPU
+    cat        : GeoDataFrame of NHDCatchments within the VPU
+    final      : merged DataFrame of NHD Tables used to find off-network lakes
+    problemos  : GeoDataFrame of NHDWaterbodies that aren't within th VPU
+    '''
     wbShp = gpd.read_file("%s/NHDSnapshot/Hydrography/NHDWaterbody.shp"%(nhd))
     wbShp.columns = wbShp.columns[:-1].str.upper().tolist() + ['geometry'] 
     wbShp = wbShp[['AREASQKM','COMID','FTYPE','geometry']]
     wbShp = wbShp.loc[wbShp['FTYPE'].isin(['LakePond','Reservoir'])]
     wbs = sjoin(wbShp, unit, op='within')[['AREASQKM','COMID','FTYPE',
                                             'UnitID','geometry']]
+    problemos = wbShp.ix[~wbShp.COMID.isin(wbs.COMID)].copy()
+    problemos['VPU'] = nhd.split('/')[-1].split('NHDPlus')[-1]
     wbs.rename(columns={'UnitID': 'VPU'}, inplace=True)
-    sinks = gpd.read_file("%s/NHDPlusBurnComponents/"\
-                        "Sink.shp"%(nhd))[['FEATUREID','SOURCEFC','geometry']]
-    sinks = sinks.ix[sinks.SOURCEFC == 'NHDFlowline']
-    sinks.rename(columns={'FEATUREID': 'COMID_sink'}, inplace=True)
-    wbs = sjoin(wbs, sinks, how='left', op='intersects').drop('index_right',
-                                                                        axis=1)
     fl = dbf2DF("%s/NHDSnapshot/Hydrography/NHDFlowline.dbf"%(nhd))[['COMID', 
                                                                 'WBAREACOMI']]
-    fl = updateSinks(wbs,fl)
+    sinks = gpd.read_file("%s/NHDPlusBurnComponents/Sink.shp"%(nhd))
+    if len(sinks) > 0:
+        sinks = sinks[['FEATUREID','SOURCEFC','geometry']]
+        sinks = sinks.ix[sinks.SOURCEFC == 'NHDFlowline']
+        sinks.rename(columns={'FEATUREID': 'COMID_sink'}, inplace=True)
+        try:  # this exception will go away with the next version of geopandas
+            wbSink = sjoin(wbs,sinks,how='left',op='intersects').drop(
+                                                        'index_right',axis=1)    
+        except ValueError:  #pass empty DatFrame if no intersection in shps
+            wbSink = gpd.GeoDataFrame(columns=(wbs.columns.tolist() +
+                            [c for c in sinks.columns if not 'geometry' in c]))
+        fl = updateSinks(wbSink,fl)
     cat = gpd.read_file('%s/NHDPlusCatchment/Catchment.shp'%(nhd)).drop(
                         ['GRIDCODE', 'SOURCEFC'], axis=1)
     cat.columns = cat.columns[:-1].str.upper().tolist() + ['geometry']                         
@@ -581,7 +638,7 @@ def NHDTblMerge(nhd, unit):
     final = pd.merge(final,vaa,left_on='COMID_cat',
                        right_on='COMID',how='left')
     final.HYDROSEQ = final.HYDROSEQ.fillna(final.HYDROSEQ.max() + 1)
-    return wbs, cat, final  
+    return wbs, cat, final, problemos 
 
 ##############################################################################
-          
+        
