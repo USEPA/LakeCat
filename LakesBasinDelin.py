@@ -12,10 +12,9 @@
 #--------------------------------------------------------
 
 import os
-import arcpy
-from arcpy import env
-from arcpy.sa import *
-
+import geopandas as gpd
+from arcpy import env, PolygonToRaster_conversion
+from arcpy.sa import Watershed 
 
 # Check out any necessary licenses
 arcpy.CheckOutExtension("spatial")
@@ -31,44 +30,50 @@ crs = 'PROJCS["NAD_1983_Contiguous_USA_Albers",'\
 'PARAMETER["standard_parallel_2",45.5],PARAMETER["latitude_of_origin",23.0],'\
 'UNIT["Meter",1.0]]'
 
-arcpy.env.outputCoordinateSystem = crs
+env.outputCoordinateSystem = crs
 
 NHD_dir = 'D:/NHDPlusV21'                   
 outdir = 'D:/Projects/lakesAnalysis/NHDPlus_Lakes_Basins_Rasters_1'
 if not os.path.exists(outdir):
     os.mkdir(outdir)
 wbs = "D:/Projects/lakesAnalysis/new/Isolated_AlbersOut1_Arc.shp"  
-print wbs   
-RPU = 'D:/Projects/lakesAnalysis/RPUs_Global_ALBERS.shp'  
-arcpy.MakeFeatureLayer_management(RPU, "RPUs") 
-arcpy.MakeFeatureLayer_management(wbs, "NHDWaterbody")
+   
+#RPU = 'D:/Projects/lakesAnalysis/RPUs_Global_ALBERS.shp'  
+#arcpy.MakeFeatureLayer_management(RPU, "RPUs") 
+rpu = gpd.GeoDataFrame.from_file('{}/NHDPlusGlobalData/BoundaryUnit.shp'.format(NHD_dir))
+wb = gpd.GeoDataFrame.from_file(wbs)
 
+for x in wb.VPU.unique():
+    print x
+# Both VPU and RPU should be put into the shp of Isolated so we can lookup from there
+# else we are just copying what has already happened in the last script, also, this
+# might be able to be modularized to be used in while loop for removing lakes we can't use
 rows = arcpy.SearchCursor(RPU)
 row = rows.next()
 while row:
     unit = row.getValue("UnitID")
     hydroregion = row.getValue("DrainageID")
     lakesras = '%s/test_reg%s_lakes.tif'%(outdir,str(unit))
-    if not arcpy.Exists(lakesras):
+    if not os.path.exists(lakesras):
         print unit
         for root, dirs, files in os.walk(NHD_dir):
             for name in dirs:
                 if unit in name and 'FdrFac' in name:
                     fdr = (os.path.join(root, name) + '/fdr')
-        arcpy.env.snapRaster = fdr
+        env.snapRaster = fdr
         desc = arcpy.Describe(fdr)
-        arcpy.env.extent = desc.extent   
+        env.extent = desc.extent   
         arcpy.MakeFeatureLayer_management("RPUs", "cursor_layer", "UnitID = '%s'" % str(unit) )
         arcpy.SelectLayerByLocation_management("NHDWaterbody", "HAVE_THEIR_CENTER_IN", "cursor_layer", "", "NEW_SELECTION")
         print 'selected'
         #arcpy.CopyFeatures_management("NHDWaterbody", "%s/lks%s.shp" % (outdir, unit))    
-        arcpy.PolygonToRaster_conversion("NHDWaterbody", "GRIDCODE", lakesras, "CELL_CENTER", "NONE", "30")
+        PolygonToRaster_conversion("NHDWaterbody", "GRIDCODE", lakesras, "CELL_CENTER", "NONE", "30")
         arcpy.Delete_management("cursor_layer")
         print lakesras
         print 'done'
     outwatshd = '%s/reg%s_wtshds.tif'%(outdir,unit)
-    if not arcpy.Exists(outwatshd):
+    if not os.path.exists(outwatshd):
         print 'making watershed'
-        arcpy.gp.Watershed_sa(fdr, lakesras, outwatshd, "VALUE")    
+        Watershed(fdr, lakesras, outwatshd, "VALUE")    
     row = rows.next()
 ##########################################################################################################   

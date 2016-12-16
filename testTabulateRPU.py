@@ -29,7 +29,7 @@ for zone in inputs:
         if not os.path.exists(out):        
             raster = 'D:/Projects/lakesAnalysis/NHDPlus_Lakes_Basins_Rasters_1/reg%s_wtshds.tif' % rpu
             TabulateArea(raster, "VALUE", catRas, "Value", out, "30")
-        if not os.path.exists('D:/Projects/LakeCat/Allocation_Accumulation/TabRpus/zonal_ALL3.csv'):
+        if not os.path.exists('D:/Projects/LakeCat/Allocation_Accumulation/TabRpus/zonal_ALL.csv'):
             tbl = dbf2DF(out)
             if count == 0:
                 final = tbl
