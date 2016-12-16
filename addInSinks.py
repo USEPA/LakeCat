@@ -11,14 +11,14 @@ import sys
 import pandas as pd
 import geopandas as gpd
 sys.path.append('D:/Projects/LakeCat')
-from LakeCat_functions import NHD_Dict, NHDTblMerge
-NHD_dir = 'D:/NHDPlusV21'                    
-inputs = NHD_Dict(NHD_dir)  # dictionaries to iterate thru NHD folder structure
-rasterUnits = NHD_Dict(NHD_dir, unit='RPU')
+from LakeCat_functions import NHDdict, NHDTblMerge
+NHDdir = 'D:/NHDPlusV21'                    
+inputs = NHDdict(NHDdir)  # dictionaries to iterate thru NHD folder structure
+rasterUnits = NHDdict(NHDdir, unit='RPU')
 outdir = 'D:/Projects/LakeCat/sinkTest'
 (os.mkdir(outdir),None)[os.path.exists(outdir)]
 boundShp = gpd.read_file(
-            "%s/NHDPlusGlobalData/BoundaryUnit.shp" % NHD_dir).drop(
+            "%s/NHDPlusGlobalData/BoundaryUnit.shp" % NHDdir).drop(
             ['AreaSqKM','DrainageID','Shape_Area',
             'Shape_Leng','UnitName'], axis=1)
 vpus = boundShp.query("UnitType == 'VPU'")
@@ -26,7 +26,7 @@ count = 0
 for zone in inputs.keys()[14:]:
     print zone
     hr = inputs[zone]
-    pre = "%s/NHDPlus%s/NHDPlus%s" % (NHD_dir, hr, zone)
+    pre = "%s/NHDPlus%s/NHDPlus%s" % (NHDdir, hr, zone)
     vpu = vpus.query("UnitID == '%s'" % zone)
     wbs, cat, allTbls, Xs = NHDTblMerge(pre, vpu)                     
     onNetDF = pd.DataFrame(columns=('catCOMID','CatAreaSqKm', 'wbCOMID'))
@@ -34,7 +34,7 @@ for zone in inputs.keys()[14:]:
     for name, group in allTbls.groupby('COMID_wb'):
         if not pd.isnull(group.FEATUREID).any():
             base = group.ix[group.HYDROSEQ.idxmin()]
-            onNetDF = onNetDF.append(pd.Series([int(base.COMID_cat),  #there is a chance here that some zones don't cap. all letters!
+            onNetDF = onNetDF.append(pd.Series([int(base.COMID_cat),
                                                 int(base.COMID_wb),
                                                 base.AREASQKM_cat],
                                                 index=['catCOMID',
