@@ -16,8 +16,7 @@ NHD_dir = 'D:/NHDPlusV21'
 inputs = NHD_Dict(NHD_dir)  # dictionaries to iterate thru NHD folder structure
 rasterUnits = NHD_Dict(NHD_dir, unit='RPU')
 outdir = 'D:/Projects/LakeCat/sinkTest'
-if not os.path.exists(outdir):
-    os.mkdir(outdir)
+(os.mkdir(outdir),None)[os.path.exists(outdir)]
 boundShp = gpd.read_file(
             "%s/NHDPlusGlobalData/BoundaryUnit.shp" % NHD_dir).drop(
             ['AreaSqKM','DrainageID','Shape_Area',
