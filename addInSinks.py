@@ -12,11 +12,11 @@ import pandas as pd
 import geopandas as gpd
 
 def main (NHDdir, outdir):
-        
+
     inputs = NHDdict(NHDdir)
     if not os.path.exists(outdir):
         os.mkdir(outdir)
-    
+
     boundShp = gpd.read_file(
                 "%s/NHDPlusGlobalData/BoundaryUnit.shp" % NHDdir).drop(
                 ['AreaSqKM','DrainageID','Shape_Area',
@@ -28,7 +28,7 @@ def main (NHDdir, outdir):
         hr = inputs[zone]
         pre = "%s/NHDPlus%s/NHDPlus%s" % (NHDdir, hr, zone)
         vpu = vpus.query("UnitID == '%s'" % zone)
-        wbs, cat, allTbls, Xs = NHDtblMerge(pre, vpu)                     
+        wbs, cat, allTbls, Xs = NHDtblMerge(pre, vpu)
         onNetDF = pd.DataFrame(columns=('catCOMID','CatAreaSqKm', 'wbCOMID'))
         catCon = {}
         for name, group in allTbls.groupby('COMID_wb'):
@@ -47,10 +47,10 @@ def main (NHDdir, outdir):
     print 'Total OnNet lakes: %s' % str(count)
 
 if __name__ == '__main__':
-    
+
     sys.path.append(sys.argv[3])
     from LakeCat_functions import NHDtblMerge, NHDdict
     NHDdir = sys.argv[1]
     outdir = sys.argv[2]
-
+    # reads main('path/to/NHD', 'new/path/to/write', 'path/to/LakeCat')
     main(NHDdir, outdir)
