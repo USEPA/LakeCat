@@ -583,7 +583,7 @@ def updateSinks(wbDF,flDF):
 ##############################################################################
 
 
-def NHDTblMerge(nhd, unit):
+def NHDtblMerge(nhd, unit):
     '''
     __author__ =  "Rick Debbout <debbout.rick@epa.gov>"
     Merges all of the NHD tables needed to find on-network lakes. Returns the 

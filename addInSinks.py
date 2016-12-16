@@ -11,7 +11,7 @@ import sys
 import pandas as pd
 import geopandas as gpd
 sys.path.append('D:/Projects/LakeCat')
-from LakeCat_functions import NHDdict, NHDTblMerge
+from LakeCat_functions import NHDdict, NHDtblMerge
 NHDdir = 'D:/NHDPlusV21'                    
 inputs = NHDdict(NHDdir)  # dictionaries to iterate thru NHD folder structure
 rasterUnits = NHDdict(NHDdir, unit='RPU')
@@ -28,7 +28,7 @@ for zone in inputs.keys()[14:]:
     hr = inputs[zone]
     pre = "%s/NHDPlus%s/NHDPlus%s" % (NHDdir, hr, zone)
     vpu = vpus.query("UnitID == '%s'" % zone)
-    wbs, cat, allTbls, Xs = NHDTblMerge(pre, vpu)                     
+    wbs, cat, allTbls, Xs = NHDtblMerge(pre, vpu)                     
     onNetDF = pd.DataFrame(columns=('catCOMID','CatAreaSqKm', 'wbCOMID'))
     catCon = {}
     for name, group in allTbls.groupby('COMID_wb'):
