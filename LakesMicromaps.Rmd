@@ -150,7 +150,7 @@ nlcd = read.csv('L:/Priv/CORFiles/Geospatial_Library/Data/Project/LakeCat/FinalT
 head(nlcd)
 nlcd$PctUrb = nlcd$PctUrbLo2006Ws + nlcd$PctUrbMd2006Ws + nlcd$PctUrbHi2006Ws
 nlcd$PctAg = nlcd$PctCrop2006Ws
-nlcd$PctFor = nlcd$PctDecid2006Ws + nlcd$PctMxFst2006Ws + nlcd$PctMxFst2006Ws
+nlcd$PctFor = nlcd$PctDecid2006Ws + nlcd$PctConif2006Ws + nlcd$PctMxFst2006Ws
 lakedata = nlcd[c(1,39:41)]
 
 
@@ -158,10 +158,6 @@ lakedata$PctUrb[is.na(lakedata$PctUrb)] = 0
 lakedata$PctAg[is.na(lakedata$PctAg)] = 0
 lakedata$PctFor[is.na(lakedata$PctFor)] = 0
 
-# # Convert to log scale
-# lakedata$PctUrb = log(lakedata$PctUrb)
-# lakedata$PctAg[lakedata$PctAg > 0] = log(lakedata$PctAg[lakedata$PctAg > 0])
-# lakedata$PctFor[lakedata$PctFor > 0] = log(lakedata$PctFor[lakedata$PctFor > 0])
 
 library(micromap)
 # create map table
@@ -177,59 +173,69 @@ levels(lakedata$WSA_NAME)
 levels(lakedata$WSA_NAME) <- c("Coastal Plains","N. Appalachians","N. Plains","S. Appalachians","S. Plains", 
                           "T. Plains","Upper Midwest","W. Mountains","Xeric")
 
-#now summarize data by aggregated ecoregions
-#tip from Mike McManus via QuickR blog  http://statmethods.wordpress.com/
-# define and name the statistics of interest  
-stats <- function(x)(c(N = length(x), Mean = mean(x)))  
+# Create 'low', 'med','high' categories for land use groups
+library(classInt)
+# Urban
+classIntervals(lakedata$PctUrb[lakedata$PctUrb>0], 3, style='quantile')
+# assign percentage values to our categories
+lakedata$UrbCat <- cut(lakedata$PctUrb, breaks=c(0, .5, 2, 100), include.lowest=TRUE)
+levels(lakedata$UrbCat)
+levels(lakedata$UrbCat) = c('Low','Med','High')
+summary(lakedata$UrbCat)
+lakedata$UrbCat = as.character(lakedata$UrbCat)
+lakedata$UrbCat[is.na(lakedata$UrbCat)] = 'Low'
+# Ag
+classIntervals(lakedata$PctAg[lakedata$PctAg>0], 3, style='quantile')
+# assign percentage values to our categories
+lakedata$AgCat <- cut(lakedata$PctAg, breaks=c(0, 10, 50, 100), include.lowest=TRUE)
+levels(lakedata$AgCat)
+levels(lakedata$AgCat) = c('Low','Med','High')
+summary(lakedata$AgCat)
+lakedata$AgCat = as.character(lakedata$AgCat)
+lakedata$AgCat[is.na(lakedata$AgCat)] = 'Low'
 
-statsq <-function(x)(c(N = length(x), Min = min(x), Q1 = quantile(x,c(.25)),
-                       Median = quantile(x,c(.5)), Q3 = quantile(x,c(.75)),
-                       Max = max(x)))
+library(dplyr)
+urb = lakedata %>%
+  group_by(WSA_NAME, UrbCat) %>%
+  summarise (n = n()) %>%
+  mutate(freq = (n / sum(n)*100)) 
+Ag = lakedata %>%
+  group_by(WSA_NAME, AgCat) %>%
+  summarise (n = n()) %>%
+  mutate(freq = (n / sum(n)*100))
+landcov = data.frame(urb)
+names(landcov)[3:4] = c('n.urb','freq.urb')
+Ag = data.frame(Ag)
+names(Ag)[3:4] = c('n.ag','freq.ag')
+landcov = cbind(landcov, Ag[,3:4])
 
-library(reshape)
-lakes.dfm   <- melt(lakedata,  
-                      #outcome variables  
-                      measure.vars = c("PctUrb","PctAg","PctFor"),  
-                      # classification variables  
-                      id.vars = c("WSA_NAME"),  na.rm=TRUE)
+levels(as.factor(landcov$UrbCat))
+landcov$UrbCat = factor(landcov$UrbCat, levels=c("Low","Med","High"))
+landcov = landcov[order(landcov$WSA_NAME,landcov$UrbCat),]
+mmgroupedplot(stat.data=landcov,
+              map.all=T,
+              map.data=wsa.polys,
+              panel.types=c("map", "labels", "bar_cl", "bar_cl"),
+              panel.data=list(NA,"UrbCat",
+                              list("freq.urb","freq.urb","freq.urb"),
+                              list("freq.ag","freq.ag","freq.ag")),
+              grp.by="WSA_NAME",
+              cat="UrbCat",
+              colors=c("green3","lightblue","red3"),
+              map.color="orange3",
+              map.link=c("WSA_NAME", "ID"),
+              plot.grp.spacing=1,
+              plot.width=10,
+              plot.height=7,
+              panel.att=list(list(1, header="Region", header.size=1,
+              panel.width=.6),
+              list(2, header="Category",
+              header.size=1,
+              panel.width=.4,
+              text.size = .6),
+              list(3, header="Urban", header.size=1,
+              xaxis.title="percent"),
+              list(4, header="Ag", header.size=1,
+              xaxis.title="percent")))
 
-
-lakes.dfc <- cast(lakes.dfm, WSA_NAME ~ variable, statsq)
-names(lakes.dfc) <- c("WSA_NAME","PctUrb_N","PctUrb_Min","PctUrb_Q125","PctUrb_Median50","PctUrb_Q375","PctUrb_Max",
-                      "PctAg_N","PctAg_Min","PctAg_Q125","PctAg_Median50","PctAg_Q375","PctAg_Max",
-                      "PctFor_N","PctFor_Min","PctFor_Q125","PctFor_Median50","PctFor_Q375","PctFor_Max") 
-lakes.dfc$WSA_NAME <- as.character(lakes.dfc$WSA_NAME)
-
-lakes.dfc$points<-0
-
-mmplot(stat.data=lakes.dfc, 
-       map.data=wsa.polys,
-       map.all=T,
-       plot.width=11,
-       panel.types=c('map', 'labels', 'box_summary', 'box_summary', 'box_summary'),
-       panel.data=list(NA,
-                       "WSA_NAME",
-                       list("PctUrb_Min","PctUrb_Q125","PctUrb_Median50","PctUrb_Q375","PctUrb_Max"),
-                       list("PctAg_Min","PctAg_Q125","PctAg_Median50","PctAg_Q375","PctAg_Max"),
-                       list("PctFor_Min","PctFor_Q125","PctFor_Median50","PctFor_Q375","PctFor_Max")),
-       ord.by="PctUrb_Median50", 
-       grouping=3, 
-       median.row=F, 
-       map.link=c("WSA_NAME", 'ID'), 
-       panel.att=list(list(1, header='Light Gray Means\n Highlighted Above'), 
-#                            inactive.border.color=gray(.7), 
-#                            inactive.border.size=2), 
-                      
-                  list(2, header='Aggregated\n Ecoregions', 
-                       align='left', text.size=.6),
-                  
-                  list(3, header='% Urban',
-                       graph.bgcolor='lightgray',
-                       graph.bar.size = .6),
-                  list(4, header='% Ag',
-                       graph.bgcolor='lightgray',
-                       graph.bar.size = .6),
-                  list(5, header='% Forested',
-                       graph.bgcolor='lightgray',
-                       graph.bar.size = .6)))
 ```
