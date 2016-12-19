@@ -606,9 +606,12 @@ def NHDTblMerge(nhd, unit):
     wbShp.columns = wbShp.columns[:-1].str.upper().tolist() + ['geometry'] 
     wbShp = wbShp[['AREASQKM','COMID','FTYPE','geometry']]
     wbShp = wbShp.loc[wbShp['FTYPE'].isin(['LakePond','Reservoir'])]
-    wbs = sjoin(wbShp, unit, op='within')[['AREASQKM','COMID','FTYPE',
+    wbCent = wbShp.copy() # use centroids with sjoin here 
+    wbCent.geometry = wbShp.geometry.centroid
+    win = sjoin(wbCent, unit, op='within')[['AREASQKM','COMID','FTYPE',
                                             'UnitID','geometry']]
-    problemos = wbShp.ix[~wbShp.COMID.isin(wbs.COMID)].copy()
+    wbs = wbShp.ix[wbShp.COMID.isin(win.COMID)].copy()
+    problemos = wbShp.ix[~wbShp.COMID.isin(win.COMID)].copy()
     problemos['VPU'] = nhd.split('/')[-1].split('NHDPlus')[-1]
     wbs.rename(columns={'UnitID': 'VPU'}, inplace=True)
     fl = dbf2DF("%s/NHDSnapshot/Hydrography/NHDFlowline.dbf"%(nhd))[['COMID', 

@@ -24,7 +24,7 @@ boundShp = gpd.read_file(
             'Shape_Leng','UnitName'], axis=1)
 vpus = boundShp.query("UnitType == 'VPU'")
 count = 0
-for zone in inputs.keys()[14:]:
+for zone in inputs:  # .keys()[14:]
     print zone
     hr = inputs[zone]
     pre = "%s/NHDPlus%s/NHDPlus%s" % (NHD_dir, hr, zone)
