@@ -256,7 +256,7 @@ def makeRPUdict(directory):
     return rpuinputs
 ##############################################################################
 
-def NHD_Dict(directory, unit='VPU'):
+def NHDdict(directory, unit='VPU'):
     '''
     __author__ =  "Rick Debbout <debbout.rick@epa.gov>"
     Creates an OrderdDict for looping through regions of the NHD RPU zones
@@ -583,7 +583,7 @@ def updateSinks(wbDF,flDF):
 ##############################################################################
 
 
-def NHDTblMerge(nhd, unit):
+def NHDtblMerge(nhd, unit):
     '''
     __author__ =  "Rick Debbout <debbout.rick@epa.gov>"
     Merges all of the NHD tables needed to find on-network lakes. Returns the 

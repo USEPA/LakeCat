@@ -10,6 +10,8 @@ import os
 import sys
 import pandas as pd
 import geopandas as gpd
+sys.path.append('D:/Projects/LakeCat') # 'path/to/LakeCat'
+from LakeCat_functions import NHDtblMerge, NHDdict
 
 def main (NHDdir, outdir):
 
@@ -23,6 +25,7 @@ def main (NHDdir, outdir):
                 'Shape_Leng','UnitName'], axis=1)
     vpus = boundShp.query("UnitType == 'VPU'")
     count = 0
+    problems = gpd.GeoDataFrame()
     for zone in inputs:
         print zone
         hr = inputs[zone]
@@ -43,15 +46,15 @@ def main (NHDdir, outdir):
                                              ignore_index=True)
         print 'OnNet: %s' % str(len(onNetDF))
         count += len(onNetDF)
+        problems = pd.concat([problems,Xs.copy()])
         onNetDF.to_csv("%s/join_%s.csv" % (outdir, zone), index=False)
+    problems.to_file("%s/outOfBounds.shp" % (outdir))
     print 'Total OnNet lakes: %s' % str(count)
 
 if __name__ == '__main__':
     # run: python addInSinks.py 'path/to/NHD' 'new/path/to/write' 'path/to/LakeCat
-    sys.path.append(sys.argv[3]) # 'path/to/LakeCat
-    from LakeCat_functions import NHDtblMerge, NHDdict
-    NHDdir = sys.argv[1]
-    outdir = sys.argv[2]
+    NHDdir = 'D:/NHDPlusV21'
+    outdir = 'D:/Projects/LakeCat/sinkTest'
     # reads main('path/to/NHD', 'new/path/to/write')
     main(NHDdir, outdir)
-
+    
