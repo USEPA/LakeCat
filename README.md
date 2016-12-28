@@ -89,3 +89,12 @@ On_Net_Cvg_Diffs -- come from the script chkNLWwLakeCat.py comparing the lake ar
 
 off-network problem lakes -- findProblemLakes.py prints out table where an off-network lake basin's area is larger than the catchment in which the lake is found. This table was used to remove 758 lakes from the IsolatedLakes.shp file.
 
+##updating: 12/20/2016
+
+![vpu_join3](https://cloud.githubusercontent.com/assets/7052993/21364695/c1dfe21c-c6a6-11e6-8671-cf7f4808428d.png)
+
+###New order of spatial joins/ table merges:
+* do the sjoin with the vpu AFTER we find on-network lakes to hold onto problem lakes from other zones
+* use sinks.shp to  hold onto more on-network lakes that get overdrawn
+* 
+* 
