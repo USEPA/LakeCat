@@ -572,9 +572,9 @@ def updateSinks(wbDF,flDF):
     flDF    : Location of intermediate StreamCat csv files
     '''
     flow = flDF.set_index('COMID')
-    wbDF = wbDF.ix[wbDF.COMID_sink.unique()]
-    bodies = wbDF.set_index('COMID_sink')
-    sinks = bodies.loc[bodies.SOURCEFC.notnull()][['COMID']]
+    #chk = wbDF.set_index('COMID_sink')
+    sinks = wbDF.ix[wbDF.COMID_sink.notnull()].copy()
+    #sinks = bodies.loc[bodies.SOURCEFC.notnull()][['COMID']]
     sinks.rename(columns={'COMID': 'WBAREACOMI'}, inplace=True)
     flow.update(sinks)
     flow.WBAREACOMI = flow.WBAREACOMI.astype(np.int64)
@@ -583,7 +583,7 @@ def updateSinks(wbDF,flDF):
 ##############################################################################
 
 
-def NHDtblMerge(nhd, unit):
+def NHDtblMerge(nhd, out):
     '''
     __author__ =  "Rick Debbout <debbout.rick@epa.gov>"
     Merges all of the NHD tables needed to find on-network lakes. Returns the 
@@ -598,50 +598,152 @@ def NHDtblMerge(nhd, unit):
     Returns
     ---------
     wbs        : GeoDataFrame of NHDWaterbodies within the VPU
-    cat        : GeoDataFrame of NHDCatchments within the VPU
-    final      : merged DataFrame of NHD Tables used to find off-network lakes
-    problemos  : GeoDataFrame of NHDWaterbodies that aren't within th VPU
     '''
-    wbShp = gpd.read_file("%s/NHDSnapshot/Hydrography/NHDWaterbody.shp"%(nhd))
-    wbShp.columns = wbShp.columns[:-1].str.upper().tolist() + ['geometry'] 
-    wbShp = wbShp[['AREASQKM','COMID','FTYPE','geometry']]
-    wbShp = wbShp.loc[wbShp['FTYPE'].isin(['LakePond','Reservoir'])]
-    wbCent = wbShp.copy() # use centroids with sjoin here 
-    wbCent.geometry = wbShp.geometry.centroid
-    win = sjoin(wbCent, unit, op='within')[['AREASQKM','COMID','FTYPE',
-                                            'UnitID','geometry']]
-    wbs = wbShp.ix[wbShp.COMID.isin(win.COMID)].copy()
-    problemos = wbShp.ix[~wbShp.COMID.isin(win.COMID)].copy()
-    problemos['VPU'] = nhd.split('/')[-1].split('NHDPlus')[-1]
-    wbs.rename(columns={'UnitID': 'VPU'}, inplace=True)
-    fl = dbf2DF("%s/NHDSnapshot/Hydrography/NHDFlowline.dbf"%(nhd))[['COMID', 
-                                                                'WBAREACOMI']]
-    sinks = gpd.read_file("%s/NHDPlusBurnComponents/Sink.shp"%(nhd))
-    if len(sinks) > 0:
-        sinks = sinks[['FEATUREID','SOURCEFC','geometry']]
-        sinks = sinks.ix[sinks.SOURCEFC == 'NHDFlowline']
-        sinks.rename(columns={'FEATUREID': 'COMID_sink'}, inplace=True)
-        try:  # this exception will go away with the next version of geopandas
-            wbSink = sjoin(wbs,sinks,how='left',op='intersects').drop(
-                                                        'index_right',axis=1)    
-        except ValueError:  #pass empty DatFrame if no intersection in shps
-            wbSink = gpd.GeoDataFrame(columns=(wbs.columns.tolist() +
-                            [c for c in sinks.columns if not 'geometry' in c]))
-        fl = updateSinks(wbSink,fl)
-    cat = gpd.read_file('%s/NHDPlusCatchment/Catchment.shp'%(nhd)).drop(
-                        ['GRIDCODE', 'SOURCEFC'], axis=1)
-    cat.columns = cat.columns[:-1].str.upper().tolist() + ['geometry']                         
-    vaa = dbf2DF('%s/NHDPlusAttributes/PlusFlowlineVAA.dbf'%(nhd))[['COMID',
-                                                                    'HYDROSEQ']]        
-    final = pd.merge(cat.drop('geometry', axis=1),fl,left_on='FEATUREID',
-                       right_on='COMID',how='inner')
-    final = pd.merge(wbs.drop('geometry',axis=1),final,left_on='COMID',
-                       right_on='WBAREACOMI',how='left',
-                       suffixes=('_wb','_cat'))
-    final = pd.merge(final,vaa,left_on='COMID_cat',
-                       right_on='COMID',how='left')
-    final.HYDROSEQ = final.HYDROSEQ.fillna(final.HYDROSEQ.max() + 1)
-    return wbs, cat, final, problemos 
+    inputs = NHDdict(nhd)
+    boundShp = gpd.read_file(
+                            "%s/NHDPlusGlobalData/BoundaryUnit.shp" % nhd).drop(
+                            ['AreaSqKM','DrainageID','Shape_Area',
+                            'Shape_Leng','UnitName'], axis=1)
+    vpus = boundShp.query("UnitType == 'VPU'").copy()
+    onNet_connect = {}  # initialize dict to hold assoc. catchments for lakes lowest HYDROSEQ
+    Obounds = gpd.GeoDataFrame()
+    qa_cols=['Total Waterbodies','On-Network','Off-network','FTYPE_drop',
+                                                     'Sink_add','Out_of_bounds']
+    qa_tbl = pd.DataFrame()                                                 
+    for zone in inputs:
+        print zone
+        hr = inputs[zone]
+        pre = "%s/NHDPlus%s/NHDPlus%s" % (nhd, hr, zone)
+        wbShp = gpd.read_file("%s/NHDSnapshot/Hydrography/NHDWaterbody.shp"%(pre))
+        ttl_WB = len(wbShp)
+        ftype_x = len(wbShp)
+        wbShp.columns = wbShp.columns[:-1].str.upper().tolist() + ['geometry'] 
+        wbShp = wbShp[['AREASQKM','COMID','FTYPE','geometry']]
+        wbShp = wbShp.loc[wbShp['FTYPE'].isin(['LakePond','Reservoir'])]
+        ttl_FTYPE = ftype_x - len(wbShp)
+        fl = dbf2DF("%s/NHDSnapshot/Hydrography/NHDFlowline.dbf"%(pre))[['COMID', 
+                                                                    'WBAREACOMI']]
+        cat = gpd.read_file('%s/NHDPlusCatchment/Catchment.shp'%(pre)).drop(
+                            ['GRIDCODE', 'SOURCEFC'], axis=1)
+        cat.columns = cat.columns[:-1].str.upper().tolist() + ['geometry']                         
+        vaa = dbf2DF('%s/NHDPlusAttributes/PlusFlowlineVAA.dbf'%(pre))[['COMID',
+                                                                        'HYDROSEQ']]        
+        final = pd.merge(cat.drop('geometry', axis=1),fl,left_on='FEATUREID',
+                           right_on='COMID',how='inner')
+        final = pd.merge(wbShp.drop('geometry',axis=1),final,left_on='COMID',
+                           right_on='WBAREACOMI',how='left',
+                           suffixes=('_wb','_cat'))
+        final = pd.merge(final,vaa,left_on='COMID_cat',
+                           right_on='COMID',how='left')
+                           
+                           
+        cols = ['catCOMID','wbCOMID','CatAreaSqKm']
+        onNetDF = pd.DataFrame(columns=cols)
+        catDict = {} # holds associated lake catchments to an on-network lake
+        
+        # group by the waterbody COMID to find associated catchment
+        for name, group in final.groupby('COMID_wb'):
+            if not pd.isnull(group.FEATUREID).any():
+                base = group.ix[group.HYDROSEQ.idxmin()]
+                row = pd.Series([int(base.COMID_cat), int(base.COMID_wb),
+                                 base.AREASQKM_cat], index=cols)
+                onNetDF = onNetDF.append(row, ignore_index=True)
+                catDict[int(base.COMID_cat)] = group.FEATUREID.astype(int).tolist()
+    
+        ttl_ON = len(onNetDF)
+        # add in related sinks
+        sinks = gpd.read_file("%s/NHDPlusBurnComponents/Sink.shp"%(pre))   
+        exp = '(SOURCEFC== "NHDWaterbody")&(PURPDESC== "NHDWaterbody closed lake")'
+        if len(sinks) > 0:
+            sinks = sinks.query(exp)
+            try:
+                assert len(sinks) > 0
+                catSink = sjoin(sinks, cat)
+                catSink = catSink[['FEATUREID_right','FEATUREID_left','AREASQKM']]
+                catSink.columns = cols
+                catSink = catSink.ix[catSink.wbCOMID.isin(wbShp.COMID)]  #this will remove any NHDWaterbody COMIDs that have the wrong FTYPE
+                catSink = catSink.ix[~catSink.wbCOMID.isin(onNetDF.wbCOMID)]  #remove any COMIDs that are already in the onNetDF
+                ttl_SINK = len(catSink)
+                for idx, line in catSink.iterrows():
+                    catDict[line.catCOMID] = [line.wbCOMID]
+                onNetDF = pd.concat([onNetDF,catSink])
+            except AssertionError:
+                ttl_SINK = 0 # all sinks got queried out!
+                pass
+        else:
+           ttl_SINK = len(sinks)  # get val if no sinks for QA
+
+        # create numpy arrays for connected catchments to waterbody            
+        allLinkd = map(lambda x: catDict[x], catDict.keys())    
+        onNet_connect[zone] = {'comids':np.array(catDict.keys()),
+                        'lengths':np.array([len(v) for v in allLinkd]),
+                        'allLinkd':np.int32(np.hstack(np.array(allLinkd)))}
+                        
+                        
+        
+        onNetDF.to_csv("%s/joinTables/join_%s.csv" % (out, zone), index=False)
+        offLks = wbShp.ix[~wbShp.COMID.isin(onNetDF.wbCOMID)].copy()
+        
+        
+        # find off-netowrk lakes that are out-of-bounds
+        vpu = vpus.query("UnitID == '%s'" % zone)
+        offCen = offLks.copy()
+        offCen.geometry = offLks.geometry.centroid
+        oob = sjoin(offCen, vpu, op='within')[['AREASQKM','COMID','FTYPE',
+                                                'UnitID','geometry']]
+        out_of_bounds = offLks.ix[~offLks.COMID.isin(oob.COMID)].copy()
+        out_of_bounds['VPU_orig'] = zone
+        outCen = offCen.ix[~offCen.COMID.isin(oob.COMID)]
+        unit = sjoin(outCen, vpus, op='within')[['COMID','UnitID']]
+        out_of_bounds = out_of_bounds.merge(unit, how='left', on='COMID')
+        
+        Obounds = pd.concat([Obounds,out_of_bounds])
+        offLks = offLks.ix[offLks.COMID.isin(oob.COMID)].copy()
+        ttl_OOB = len(out_of_bounds)
+        
+        ttl_OFF = len(offLks)
+        offLks.to_file("%s/off_net_%s.shp" % (out, zone))
+        qa_tbl[zone] = [ttl_WB,ttl_ON,ttl_OFF,ttl_FTYPE,ttl_SINK,ttl_OOB]
+        # end for loop here and write-out shps for each zone of isolated, and hold 
+        # out_of_bounds
+    
+#    Obounds = sjoin(Obounds, vpus)
+#    Obounds = Obounds[['AREASQKM','COMID','FTYPE',
+#                       'VPU_orig','UnitID''geometry',]]
+#    Obounds.columns = ['AREASQKM','COMID','FTYPE',
+#                       'VPU_orig','VPU_move','geometry']
+    Obounds.to_file("%s/out_of_bounds.shp" % out)
+    np.savez_compressed('%s/onNet_LakeCat.npz' % (out), Connect_arrays=onNet_connect)
+    qa_tbl.index = qa_cols
+    qa_tbl.T.index.rename('VPU', inplace=True)
+    qa_tbl['TOTALS'] = qa_tbl.ix[:].sum(axis=1)
+    qa_tbl.T.to_csv("%s/Lake_QA.csv" % out)
+    #return Obounds
 
 ##############################################################################
-        
+
+
+#len(pd.unique(fl.WBAREACOMI))
+#len(pd.unique(fl2.WBAREACOMI))
+#
+#wbDF = wbSink.copy()
+#flDF = fl.copy()
+#sinks.columns
+#
+#for sink in sinks.WBAREACOMI.values:
+#    if not sink in flow.WBAREACOMI.values:
+#        print sink
+#        
+#def updateSinks(wbDF,flDF):
+#
+#    flow = flDF.set_index('COMID')
+#    chk = wbDF.set_index('COMID_sink')
+#    sinks = wbDF.ix[wbDF.COMID_sink.notnull()].copy()
+#    #sinks = bodies.loc[bodies.SOURCEFC.notnull()][['COMID']]
+#    sinks.rename(columns={'COMID': 'WBAREACOMI'}, inplace=True)
+#    flow.update(sinks)
+#    flow.WBAREACOMI = flow.WBAREACOMI.astype(np.int64)
+#    return flow.reset_index(level=0)
+#    
+#flDF.columns.tolist()
+#fl.ix[fl.WBAREACOMI > 0]

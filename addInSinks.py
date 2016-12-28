@@ -17,8 +17,8 @@ def main (NHDdir, outdir):
 
     inputs = NHDdict(NHDdir)
 
-    (os.mkdir(outdir),None)[os.path.exists(outdir)]
-
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
     boundShp = gpd.read_file(
                 "%s/NHDPlusGlobalData/BoundaryUnit.shp" % NHDdir).drop(
                 ['AreaSqKM','DrainageID','Shape_Area',
