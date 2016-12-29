@@ -7,147 +7,147 @@ Created on Fri May 06 10:30:14 2016
 
 import os
 import sys
-import arcpy
-import numpy as np
-import pandas as pd
-import rasterio as rs
 import geopandas as gpd
-from rasterio import features
-from arcpy.sa import Watershed
-from geopandas.tools import sjoin
-from datetime import datetime as dt
 sys.path.append('D:/Projects/LakeCat')
-from LakeCat_functions import dbf2DF, NHDdict, DF2dbf, makeRat, purge, NHDtblMerge
+from LakeCat_functions import NHDtblMerge, makeBasins, makeFlowTbls
+                 
+def main(NHDdir, outdir):
+    
+    # create directories to hold intermediate data
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+        os.mkdir("%s/rasters" % outdir)
+        os.mkdir("%s/rasters/scratchArc" % outdir)
+        os.mkdir("%s/joinTables" % outdir)
+        os.mkdir("%s/flowTables" % outdir)
+    
+    
+    NHDbounds = gpd.read_file(
+                            "%s/NHDPlusGlobalData/BoundaryUnit.shp" % NHDdir).drop(
+                                            ['AreaSqKM','DrainageID','Shape_Area',
+                                             'Shape_Leng','UnitName'], axis=1)
+    
+    NHDtblMerge(NHDdir, NHDbounds, outdir)
+    makeBasins(NHDdir, NHDbounds, outdir)
+    makeFlowTbls(NHDdir, outdir)
+    
+if __name__ == '__main__':
+    
 
-arcpy.CheckOutExtension("spatial")
-#arcpy.env.outputCoordinateSystem = 'PROJCS["NAD_1983_Contiguous_USA_Albers",'\
-#'GEOGCS["GCS_North_American_1983",DATUM["D_North_American_1983",'\
-#'SPHEROID["GRS_1980",6378137.0,298.257222101]],PRIMEM["Greenwich",0.0],'\
-#'UNIT["Degree",0.0174532925199433]],PROJECTION["Albers"],'\
-#'PARAMETER["false_easting",0.0],PARAMETER["false_northing",0.0],'\
-#'PARAMETER["central_meridian",-96.0],PARAMETER["standard_parallel_1",29.5],'\
-#'PARAMETER["standard_parallel_2",45.5],PARAMETER["latitude_of_origin",23.0],'\
-#'UNIT["Meter",1.0]]'
-
-NHDdir = 'D:/NHDPlusV21'                    
-outdir = 'D:/Projects/LakeCat/play62post'
-
-# create directories to hold intermediate data
-#if not os.path.exists(outdir):
-#    os.mkdir(outdir)
-#    os.mkdir("%s/rasters" % outdir)
-#    os.mkdir("%s/rasters/scratchArc" % outdir)
-#    os.mkdir("%s/joinTables" % outdir)
-arcpy.env.workspace = "%s/rasters/scratchArc" % outdir   
-
-#NHDtblMerge(NHDdir, outdir)
-
-
+outdir = 'D:/Projects/LakeCat/play2'
 ###############################################################################
-def makeBasins (nhd, out)
-    problems = gpd.GeoDataFrame()  # holding for overdrawn basin delineations
-    inputs = NHDdict(NHDdir)
-    rasterUnits = NHDdict(NHDdir, unit='RPU')
-    rpus = boundShp.query("UnitType == 'RPU'").copy()
-    Obounds = gpd.read_file("%s/out_of_bounds.shp" % out)
-    for zone in inputs:
-        # sjoin and add back-in lakes that are in other zones 
-        #break
-        print zone
-        hr = inputs[zone]
-        pre = "%s/NHDPlus%s/NHDPlus%s" % (nhd, hr, zone)
-        addLks = Obounds.ix[Obounds.UnitID == zone][['AREASQKM','COMID',
-                                                    'FTYPE','geometry']].copy()
-        offLks = gpd.read_file("%s/off_net_%s.shp" % (out, zone))
-    #    addLks.columns.tolist()
-    #    offLks.columns.tolist()
-    #    tLks.columns.tolist()
-        offLks = pd.concat([offLks,addLks]).reset_index().drop('index',axis=1)
-    #    type(offLks2)
-        
-        # make lake and watershed rasters
-        r_count = 0
-        for rpu in rasterUnits[zone]:
-            #break
-            tLks = offLks.copy()
-            if len(rasterUnits[zone]) > 1:
-                rpuShp = rpus.query("UnitID == '%s'" % rpu).drop(['Hydroseq',
-                                                                'UnitType'],axis=1)
-                tLks = sjoin(tLks, rpuShp, op='within').drop('index_right',
-                                                                axis=1)
-                tLks.rename(columns={'UnitID': 'RPU'}, inplace=True)
-            if len(rasterUnits[zone]) == 1:
-                tLks['RPU'] = rpu
-            start = dt.now()
-            count_in = 0
-            bigs = [47]
-            while len(bigs) > 0:       
-                with rs.open("%s/NHDPlusFdrFac%s/fdr" % (pre, rpu)) as rst:
-                    if rst.crs != tLks.crs:
-                        tLks.to_crs(rst.crs, inplace=True)
-                    meta = rst.meta.copy()
-                    meta.update(compress='lzw')
-                    meta.update(nodata=0,
-                                dtype=rs.uint32,
-                                driver='GTiff',
-                                crs={'init': u'epsg:5070'})
-                    with rs.open("%s/rasters/lakes_%s.tif" % (outdir, rpu),
-                                 'w', **meta) as out:
-                        out_arr = out.read(1)
-                        shapes = ((g,v) for g,v in zip(tLks.geometry,tLks.COMID))
-                        burned = features.rasterize(shapes=shapes, fill=0,
-                                                    out=out_arr,
-                                                    out_shape=out_arr.shape,
-                                                    transform=out.transform)
-                        out.write(burned.astype(np.uint32), indexes=1)     
-                outWshed = Watershed("%s/NHDPlusFdrFac%s/fdr" % (pre, rpu),
-                          "%s/rasters/lakes_%s.tif" % (outdir, rpu),
-                          "VALUE")
-                outWshed.save("%s/rasters/wtshds_%s.tif"%(outdir,rpu))           
-                # compare basin sizes ---------------------------------------------
-                rat = makeRat("%s/rasters/wtshds_%s.tif"%(outdir,rpu))
-                # Write out table for potential use in Arc ------------------------
-                DF2dbf(rat, "%s/rasters/wtshds_%s.tif.vat.dbf"%(outdir,rpu))
-                centroids = tLks.to_crs({'init': u'epsg:4269'})  #.copy()
-                centroids.geometry = centroids.centroid
-                lkCat = sjoin(centroids, cat, op='within')      
-                both = pd.merge(lkCat[['COMID','FEATUREID','AreaSqKM']], rat,
-                                how='inner', left_on='COMID', right_on='VALUE')
-                both['AreaSqKM_basin'] = (both.COUNT * 900) * 1e-6
-                bigs = both.ix[both.AreaSqKM < both.AreaSqKM_basin].copy()
-                bigs['diff'] = abs(bigs.AreaSqKM - bigs.AreaSqKM_basin)
-                #bigs = bigs.drop(bigs.ix[abs(bigs.AreaSqKM - bigs.AreaSqKM_basin) < .01].index, axis=0).copy()  #this was in the old script and not sur if it should be thrown out!
-                bigs['VPU'] = zone
-                bigs['RPU'] = rpu        
-                tLks.ix[tLks.COMID.isin(bigs.COMID)].index
-                tLks.drop(tLks.ix[tLks.COMID.isin(bigs.COMID)].index,
-                                      inplace=True)
-                if len(bigs) > 0:  #delete files for another iteration of while
-                    outWshed = None
-                    rat = None
-                    purge('%s/rasters' % outdir, rpu)        
-                    if count_in == 0:
-                        problems = bigs.copy()
-                    if count_in > 0:
-                        problems = pd.concat([problems, bigs])                
-                count_in +=1
-            print '%s watershed raster built in : %s' % (rpu, str(dt.now() - start))
-            if r_count == 0:
-                p = problems.copy()
-            if r_count > 0:
-                p = pd.concat([p, problems.copy()])
-            r_count += 1
-        if count == 0:
-            outOff = tLks.to_crs({'init': u'epsg:5070'}).copy()
-            probDF = problems.copy()
-        if count > 0:
-            outOff = pd.concat([outOff, tLks.to_crs({'init': u'epsg:5070'}).copy()])
-            probDF = pd.concat([probDF,problems.copy()])
-        count += 1
-    outOff.to_file("%s/off_network.shp" % outdir)
-    probDF.sort_values('diff').to_csv("%s/problemLakes.csv" % outdir, index=False)
-    np.savez_compressed('%s/onNet_LakeCat.npz' % (outdir), Connect_arrays=onNet_connect)
-    print "You're ready to start processing Landscape Layers with LakeCat!"
+#out ='D:/Projects/LakeCat/play62post'
+#nhd = 'D:/NHDPlusv21'
+#def makeBasins (nhd, out):
+#    problems = gpd.GeoDataFrame()  # holding for overdrawn basin delineations
+#    inputs = NHDdict(NHDdir)
+#    rasterUnits = NHDdict(NHDdir, unit='RPU')
+#    rpus = boundShp.query("UnitType == 'RPU'").copy()
+#    Obounds = gpd.read_file("%s/out_of_bounds.shp" % out)
+#    for zone in inputs:
+#        # sjoin and add back-in lakes that are in other zones 
+#        #break
+#        print zone
+#        hr = inputs[zone]
+#        pre = "%s/NHDPlus%s/NHDPlus%s" % (nhd, hr, zone)
+#        addLks = Obounds.ix[Obounds.UnitID == zone].copy()
+#        offLks = gpd.read_file("%s/off_net_%s.shp" % (out, zone))
+#        offLks = pd.concat([offLks,addLks]).reset_index().drop('index',axis=1)
+#        # make lake and watershed rasters
+#        r_count = 0
+#        for rpu in rasterUnits[zone]:
+#            #break
+#            lakes = offLks.copy()
+#            if len(rasterUnits[zone]) > 1:
+#                rpuShp = rpus.query("UnitID == '%s'" % rpu).drop(['Hydroseq',
+#                                                                'UnitType'],axis=1)
+#                lakes = sjoin(lakes, rpuShp, op='within').drop('index_right',
+#                                                                axis=1)
+#                lakes.rename(columns={'UnitID': 'RPU'}, inplace=True)
+#            if len(rasterUnits[zone]) == 1:
+#                lakes['RPU'] = rpu
+#            start = dt.now()
+#            count_in = 0
+#            bigs = [47]
+#            # while len(bigs) > 0:       
+#            with rs.open("%s/NHDPlusFdrFac%s/fdr" % (pre, rpu)) as fdr:
+#                if fdr.crs != lakes.crs:
+#                    lakes.to_crs(fdr.crs, inplace=True)
+#                meta = fdr.meta.copy()
+#                meta.update(compress='lzw')
+#                meta.update(nodata=0,
+#                            dtype=rs.uint32,
+#                            driver='GTiff',
+#                            crs={'init': u'epsg:5070'})
+#                with rs.open("%s/rasters/lakes_%s.tif" % (outdir, rpu),
+#                             'w', **meta) as lksRas:
+#                    lksArray = lksRas.read(1)
+#                    shapes = ((g,v) for g,v in zip(lakes.geometry,lakes.COMID))
+#                    burned = features.rasterize(shapes=shapes, fill=0,
+#                                                out=lksArray,
+#                                                out_shape=lksArray.shape,
+#                                                transform=lksRas.transform)
+#                    lksRas.write(burned.astype(np.uint32), indexes=1)    
+#            outWshed = Watershed("%s/NHDPlusFdrFac%s/fdr" % (pre, rpu),
+#                      "%s/rasters/lakes_%s.tif" % (outdir, rpu),
+#                      "VALUE")
+#            outWshed.save("%s/rasters/wtshds_%s.tif"%(outdir,rpu))           
+#            # compare basin sizes ---------------------------------------------
+#            rat = makeRat("%s/rasters/wtshds_%s.tif"%(outdir,rpu))
+#            # Write out table for potential use in Arc ------------------------
+#            DF2dbf(rat, "%s/rasters/wtshds_%s.tif.vat.dbf"%(outdir,rpu))
+#            centroids = lakes.to_crs({'init': u'epsg:4269'}).copy()
+#            centroids.geometry = centroids.centroid
+#            cat = gpd.read_file('%s/NHDPlusCatchment/Catchment.shp'%(pre))
+#            lkCat = sjoin(centroids, cat, op='within', how='left')      
+#            both = pd.merge(lkCat[['COMID','FEATUREID','AreaSqKM']], rat,
+#                            how='inner', left_on='COMID', right_on='VALUE')
+#            both['AreaSqKM_basin'] = (both.COUNT * 900) * 1e-6
+#            bigs = both.ix[both.AreaSqKM < both.AreaSqKM_basin].copy()
+#            bigs['diff'] = abs(bigs.AreaSqKM - bigs.AreaSqKM_basin)
+#            #bigs = bigs.drop(bigs.ix[abs(bigs.AreaSqKM - bigs.AreaSqKM_basin) < .01].index, axis=0).copy()  #this was in the old script and not sur if it should be thrown out!
+#            bigs['VPU'] = zone
+#            bigs['RPU'] = rpu
+#            problems = pd.concat([problems,bigs])
+#            print problems
+#    problems.to_csv(,index=False)
+#    
+#    
+#    
+#            
+#            lakes.ix[lakes.COMID.isin(bigs.COMID)].index
+#            lakes.drop(lakes.ix[lakes.COMID.isin(bigs.COMID)].index,
+#                                  inplace=True)
+#            if len(bigs) > 0:  #delete files for another iteration of while
+#                outWshed = None
+#                rat = None
+#                purge('%s/rasters' % outdir, rpu)        
+#                if count_in == 0:
+#                    problems = bigs.copy()
+#                if count_in > 0:
+#                    problems = pd.concat([problems, bigs])                
+#            count_in +=1
+#                
+#                
+#                
+#                
+#                
+#            print '%s watershed raster built in : %s' % (rpu, str(dt.now() - start))
+#            if r_count == 0:
+#                p = problems.copy()
+#            if r_count > 0:
+#                p = pd.concat([p, problems.copy()])
+#            r_count += 1
+#        if count == 0:
+#            outOff = lakes.to_crs({'init': u'epsg:5070'}).copy()
+#            probDF = problems.copy()
+#        if count > 0:
+#            outOff = pd.concat([outOff, lakes.to_crs({'init': u'epsg:5070'}).copy()])
+#            probDF = pd.concat([probDF,problems.copy()])
+#        count += 1
+#    outOff.to_file("%s/off_network.shp" % outdir)
+#    probDF.sort_values('diff').to_csv("%s/problemLakes.csv" % outdir, index=False)
+#    print "You're ready to start processing Landscape Layers with LakeCat!"
 ###############################################################################        
         
 #        allTbls.columns.tolist()
