@@ -1017,11 +1017,11 @@ if __name__=='__main__':
 ##############################################################################
 
     
-nhd = 'D:/NHDPlusv21'
-out = 'D:/Projects/LakeCat/play_makeBasins'
-bounds = gpd.read_file("%s/NHDPlusGlobalData/BoundaryUnit.shp" % nhd).drop(
-                                ['AreaSqKM','DrainageID','Shape_Area',
-                                 'Shape_Leng','UnitName'], axis=1)
+#nhd = 'D:/NHDPlusv21'
+#out = 'D:/Projects/LakeCat/play_makeBasins'
+#bounds = gpd.read_file("%s/NHDPlusGlobalData/BoundaryUnit.shp" % nhd).drop(
+#                                ['AreaSqKM','DrainageID','Shape_Area',
+#                                 'Shape_Leng','UnitName'], axis=1)
 #                                 
 #
 #filename = askopenfilename(title='Select the file with UID and SITE_ID ',filetypes=[('Shapefile','.shp')],initialdir=os.getcwd())
