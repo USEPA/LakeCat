@@ -5,23 +5,71 @@ Created on Tue May 31 15:22:43 2016
 @author: Rdebbout
 """
 
+
 import os
 import re
-import struct, datetime, decimal, itertools
+import sys
 import arcpy
+import struct
+import decimal
+import warnings
+import datetime
+import itertools
 import numpy as np
 import pysal as ps
 import pandas as pd
 import rasterio as rs
 from osgeo import gdal
+from Tkinter import Tk
 import geopandas as gpd
 from rasterio import features
 from arcpy.sa import Watershed
 from geopandas.tools import sjoin
 from collections import OrderedDict
+from tkFileDialog import askdirectory
 arcpy.CheckOutExtension("spatial")
+warnings.filterwarnings("ignore", category=FutureWarning)
+Tk().withdraw()
 ##############################################################################
 
+
+#     legacy = 'PROJCS["NAD_1983_Contiguous_USA_Albers",'\
+#                'GEOGCS["GCS_North_American_1983",'\
+#                  'DATUM["D_North_American_1983",'\
+#                    'SPHEROID["GRS_1980",6378137.0,298.257222101]],'\
+#                  'PRIMEM["Greenwich",0.0],'\
+#                  'UNIT["Degree",0.0174532925199433]],'\
+#                'PROJECTION["Albers"],'\
+#                'PARAMETER["false_easting",0.0],'\
+#                'PARAMETER["false_northing",0.0],'\
+#                'PARAMETER["central_meridian",-96.0],'\
+#                'PARAMETER["standard_parallel_1",29.5],'\
+#                'PARAMETER["standard_parallel_2",45.5],'\
+#                'PARAMETER["latitude_of_origin",23.0],'\
+#                'UNIT["Meter",1.0]]'
+    
+fiftyseventy = 'PROJCS["NAD83 / Conus Albers",'\
+                  'GEOGCS["NAD83",'\
+                    'DATUM["North American Datum 1983",'\
+                      'SPHEROID["GRS 1980", 6378137.0, 298.257222101, AUTHORITY["EPSG","7019"]],'\
+                      'TOWGS84[1.0, 1.0, -1.0, 0.0, 0.0, 0.0, 0.0],'\
+                      'AUTHORITY["EPSG","6269"]],'\
+                    'PRIMEM["Greenwich", 0.0, AUTHORITY["EPSG","8901"]],'\
+                    'UNIT["degree", 0.017453292519943295],'\
+                    'AXIS["Geodetic longitude", EAST],'\
+                    'AXIS["Geodetic latitude", NORTH],'\
+                    'AUTHORITY["EPSG","4269"]],'\
+                  'PROJECTION["Albers Equal Area", AUTHORITY["EPSG","9822"]],'\
+                  'PARAMETER["central_meridian", -96.0],'\
+                  'PARAMETER["latitude_of_origin", 23.0],'\
+                  'PARAMETER["standard_parallel_1", 29.5],'\
+                  'PARAMETER["false_easting", 0.0],'\
+                  'PARAMETER["false_northing", 0.0],'\
+                  'PARAMETER["standard_parallel_2", 45.5],'\
+                  'UNIT["m", 1.0],'\
+                  'AXIS["Easting", EAST],'\
+                  'AXIS["Northing", NORTH],'\
+                  'AUTHORITY["EPSG","5070"]]'
 
 def dbfreader(f):
     """Returns an iterator over records in a Xbase DBF file.
@@ -197,7 +245,7 @@ def swapper(coms, upStream):
 ##############################################################################
 
 
-def findUpstreamNpy(com):  # Unpacks Numpy files describing the array of upstream COMID's for each catchment in NHD
+def findUpstreamNpy(numpy_dir, com):  # Unpacks Numpy files describing the array of upstream COMID's for each catchment in NHD
     comids = np.load(numpy_dir + '/comids.npy')
     lengths= np.load(numpy_dir + '/lengths.npy')
     upStream = np.load(numpy_dir + '/upStream.npy')
@@ -391,7 +439,7 @@ def getOnNetLakes2(metric, StreamCat, LakeComs, npy_files):
     LakeComs         : Location of csv's that join waterbody COMID to catchment COMID
     npy_files        : Location of files that associate all catchments with WBAREACOMID 
     '''    
-    vpuDict = loadDict('D:/NHDPlusV21')
+    vpuDict = NHDdict('D:/NHDPlusV21')
     for reg in vpuDict:
         tbl = pd.read_csv('%s/LakeCOMs%s.csv' % (LakeComs,reg))
         strmCat = pd.read_csv('%s/%s_%s.csv' % (StreamCat, metric, reg))
@@ -418,7 +466,7 @@ def getOnNetLakes2(metric, StreamCat, LakeComs, npy_files):
     
     
 def getOnNetLakes(metric, StreamCat, LakeComs):
-    vpuDict = loadDict('D:/NHDPlusV21')
+    vpuDict = NHDdict('D:/NHDPlusV21')
     for reg in vpuDict:
         tbl = pd.read_csv('%s/LakeCOMs%s.csv' % (LakeComs,reg))
         strmCat = pd.read_csv('%s/%s_%s.csv' % (StreamCat, metric, reg))
@@ -585,6 +633,112 @@ def updateSinks(wbDF,flDF):
     return flow.reset_index(level=0)
 
 ##############################################################################
+def rollArray(a, d):	
+    if len(d) == 4:
+        a = a[0,:]
+        new = np.roll(np.roll(a, d[0], axis=0), d[1], axis=1)
+        new[d[2],:] = a[d[2],:]
+        new[:, d[3]] = a[:, d[3]] 
+    if len(d) == 3:
+        new = np.roll(a[0,:], d[0], axis=d[1])
+        if d[1] == 0:
+            new[d[2],:] = a[0,d[2],:]
+        if d[1] == 1:
+            new[:,d[2]] = a[0,:,d[2]]
+    return np.expand_dims(new, axis=0) 
+
+##############################################################################
+    
+
+def makeFlows(arr, shiftd, fdr, path, nd):
+    iso = np.not_equal(arr, shiftd) * np.not_equal(shiftd, nd)  # cells change value after shift * cells not equal to NoData
+    pth = np.equal(fdr,path)  # True when equal to path value
+    val = iso * pth * arr 
+    shiftval = iso * pth * shiftd
+    idx = np.not_equal(val,shiftd)
+    tocom = val[idx]
+    fromcom = shiftval[idx]
+    tocom = tocom[tocom > 0]
+    fromcom = fromcom[fromcom > 0]    
+    # don't load-in the entire array to the DF, just connection vals
+    df = pd.DataFrame({'TOCOMID' : tocom, 
+                       'FROMCOMID' : fromcom,
+                            'move' : path})
+    return df.drop_duplicates(['FROMCOMID','TOCOMID'])
+
+##############################################################################
+
+
+def compAll(arr, fdr ,moves, from_to, nd):
+    for move in moves:
+        flow = makeFlows(arr, rollArray(np.copy(arr), moves[move][0]), fdr, moves[move][1], nd)
+        from_to = pd.concat([from_to,flow])
+    return from_to
+    
+##############################################################################
+
+
+def expand(window, size=1):
+    r, c = window
+    return ((r[0] - size, r[1] + size), (c[0] - size, c[1] + size))
+
+def check_window(window, w, h):
+    r, c = window
+    return ((max(0, r[0]), min(h, r[1])), (max(0, c[0]), min(w, c[1])))
+
+##############################################################################
+
+
+def chunk_windows(r, indexes=None, max_ram=250000000):
+    if indexes is None:
+        indexes = r.indexes
+    elif isinstance(indexes, int):
+        indexes = [indexes]
+    if not indexes:
+        raise ValueError('No indexes to read')
+    pixel_size = 0
+    for bidx in indexes:
+        if bidx not in r.indexes:
+            raise IndexError('band index out of range')
+        idx = r.indexes.index(bidx)
+        pixel_size += np.dtype(r.dtypes[idx]).itemsize  
+    chunk_size, _ = divmod(max_ram, pixel_size)
+    r_h, r_w = r.height, r.width
+    if chunk_size >= r_h * r_w:
+        yield (0, 0), ((0, r_h), (0, r_w))
+    else:
+        b_h, b_w = r.block_shapes[0]
+        d, _ = divmod(chunk_size, r_w * b_h)
+        chunk_height = d * b_h
+        d, m = divmod(r_h, chunk_height)
+        n_chunks = d + int(m>0)
+        for i in range(n_chunks):
+            row = i * chunk_height
+            height = min(chunk_height, r_h - row)
+            yield (i, 0), ((row, row+chunk_height), (0, r_w)) 
+
+##############################################################################
+
+
+def findFlows(zone_file, fdr_file):
+    moves = {'up':[(-1,0,-1),4],'left':[(-1,1,-1),1],'down' :[(1,0,0),64], 
+            'right':[(1,1,0),16],'downRight':[(1,1,0,0),32],
+            'downLeft':[(1,-1,0,-1), 128],'upRight':[(-1,1,-1,0),8],
+            'upLeft':[(-1,-1,-1,-1),2]}
+    flows = pd.DataFrame()
+    with rs.open(zone_file) as z:
+        with rs.open(fdr_file) as f:  # 0 is NoData for fdr
+            profile = z.profile.copy()
+            nd = profile['nodata']
+            assert z.shape == f.shape, "Rasters have different extents!"
+            for _, w in chunk_windows(z):  # currently defaults to 250MB
+                new_w = check_window(expand(w,2), z.width, z.height)
+                data = z.read(window=new_w)
+                f_r = f.read(window=new_w)
+                flows = pd.concat([flows,compAll(data,f_r,moves,flows,nd)])
+    return flows.drop_duplicates(['FROMCOMID','TOCOMID'])
+    
+##############################################################################
 
 
 def NHDtblMerge(nhd, bounds, out):
@@ -726,8 +880,11 @@ def makeBasins (nhd, bounds, out):
     rpus = bounds.query("UnitType == 'RPU'").copy()
     Obounds = gpd.read_file("%s/out_of_bounds.shp" % out)
     arcpy.env.workspace = "%s/rasters/scratchArc" % out
-    for zone in inputs:
-        
+    arcpy.env.outputCoordinateSystem = fiftyseventy
+    cols = ['VPU','out_of_raster']
+    addOut = pd.DataFrame(columns=cols)
+    flow_tbl = pd.DataFrame()
+    for zone in inputs:        
         print zone
         hr = inputs[zone]
         pre = "%s/NHDPlus%s/NHDPlus%s" % (nhd, hr, zone)
@@ -738,7 +895,9 @@ def makeBasins (nhd, bounds, out):
         offLks.rename(columns={'UnitID':'VPU_moved'}, inplace=True)
         cat = gpd.read_file('%s/NHDPlusCatchment/Catchment.shp'%(pre))
         # make lake and watershed rasters
+        ttl_LOST = 0
         for rpu in rasterUnits[zone]:
+            #break
             lakes = offLks.copy()
             if len(rasterUnits[zone]) > 1:
                 rpuShp = rpus.query("UnitID == '%s'" % rpu).drop(['Hydroseq',
@@ -749,40 +908,46 @@ def makeBasins (nhd, bounds, out):
                 lakes.rename(columns={'UnitID': 'RPU'}, inplace=True)
             if len(rasterUnits[zone]) == 1:
                 lakes['RPU'] = rpu
-            allOff = pd.concat([allOff,lakes.copy()])
-            bigs = [47]
-            # while len(bigs) > 0:       
-            with rs.open("%s/NHDPlusFdrFac%s/fdr" % (pre, rpu)) as fdr:
-                if fdr.crs != lakes.crs:
-                    lakes.to_crs(fdr.crs, inplace=True)
-                meta = fdr.meta.copy()
-                meta.update(compress='lzw')
-                meta.update(nodata=0,
-                            dtype=rs.uint32,
-                            driver='GTiff',
-                            crs={'init': u'epsg:5070'})
-                with rs.open("%s/rasters/lakes_%s.tif" % (out, rpu),
-                             'w', **meta) as lksRas:
-                    lksArray = lksRas.read(1)
-                    shapes = ((g,v) for g,v in zip(lakes.geometry,lakes.COMID))
-                    burned = features.rasterize(shapes=shapes, fill=0,
-                                                out=lksArray,
-                                                out_shape=lksArray.shape,
-                                                transform=lksRas.transform)
-                    lksRas.write(burned.astype(np.uint32), indexes=1)    
+            
+            fdr = rs.open("%s/NHDPlusFdrFac%s/fdr" % (pre, rpu))
+            if fdr.crs != lakes.crs:
+                lakes.to_crs(fdr.crs, inplace=True)
+            meta = fdr.meta.copy()
+            meta.update(compress='lzw')
+            meta.update(nodata=0,
+                        dtype=rs.uint32,
+                        driver='GTiff',
+                        crs={'init': u'epsg:5070'})
+            with rs.open("%s/rasters/lakes_%s.tif" % (out, rpu),
+                         'w', **meta) as lksRas:
+                lksArray = lksRas.read(1)
+                shapes = ((g,v) for g,v in zip(lakes.geometry,lakes.COMID))
+                burned = features.rasterize(shapes=shapes, fill=0,
+                                            out=lksArray,
+                                            out_shape=lksArray.shape,
+                                            transform=lksRas.transform)
+                lksRas.write(burned.astype(np.uint32), indexes=1)    
             outWshed = Watershed("%s/NHDPlusFdrFac%s/fdr" % (pre, rpu),
                                  "%s/rasters/lakes_%s.tif" % (out, rpu),
                                   "VALUE")
-            outWshed.save("%s/rasters/wtshds_%s.tif"%(out,rpu))           
-            # compare basin sizes ---------------------------------------------
+            outWshed.save("%s/rasters/wtshds_%s.tif"%(out,rpu))
+            
             rat = makeRat("%s/rasters/wtshds_%s.tif"%(out,rpu))
-            # Write out table for potential use in Arc ------------------------
+            ttl_LOST += (len(lakes) - len(rat))
             DF2dbf(rat, "%s/rasters/wtshds_%s.tif.vat.dbf"%(out,rpu))
             centroids = lakes.to_crs({'init': u'epsg:4269'}).copy().drop(
                                                             'AREASQKM',axis=1)
-            centroids.geometry = centroids.centroid   
+            centroids.geometry = centroids.centroid 
             lkCat = sjoin(centroids, cat, op='within', how='left')
             lkCat.columns = lkCat.columns.str.upper()
+            
+            # add assoc. cats and areas to off-net lakes ----------------------
+            lakes = lakes.merge(lkCat[['COMID','FEATUREID','AREASQKM']].rename(
+                                columns={'AREASQKM':'AREASQKM_cat'}), 
+                                on='COMID')
+            allOff = pd.concat([allOff,lakes.copy()])
+            
+            # compare basin sizes ---------------------------------------------
             both = pd.merge(lkCat[['COMID','FEATUREID','AREASQKM']], rat,
                             how='inner', left_on='COMID', right_on='VALUE')
             both['AreaSqKM_basin'] = (both.COUNT * 900) * 1e-6
@@ -791,14 +956,77 @@ def makeBasins (nhd, bounds, out):
             bigs['VPU'] = zone
             bigs['RPU'] = rpu
             problems = pd.concat([problems,bigs])
-        purge(out, "off_net_%s" % zone)
+            flow_rpu = findFlows("%s/rasters/wtshds_%s.tif"%(out,rpu), 
+                                 "%s/NHDPlusFdrFac%s/fdr" % (pre, rpu))
+        flow_tbl = pd.concat([flow_tbl, flow_rpu])
+        row = pd.Series([zone, ttl_LOST], index=cols)
+        addOut = addOut.append(row, ignore_index=True)
+    # write-out lakes that have a larger watershed 
+    # than their containing catchment
     problems.to_csv("%s/rasters/problems.csv" % out,index=False)
     allOff.to_file("%s/off-network.shp" % out)
-    
+    addOut.loc[len(addOut)] = pd.Series(
+                                        ['TOTALS', addOut['On-Network'].sum()],
+                                                                    index=cols)
+    qa_tbl = pd.read_csv("%s/Lake_QA.csv" % out)
+    qa_tbl = pd.merge(qa_tbl, addOut, on='VPU')
+    qa_tbl.to_csv("%s/Lake_QA.csv" % out, index=False)
+    flow_tbl.to_csv("%s/LakeCat_PlusFlow.csv" % out,index=False)
+    purge(out, "off_net_")
+
 ##############################################################################
 
 
-def makeFlowTbls(nhd, out):
-    inputs = NHDdict(nhd)
+def main (nhd, out):
+    
+    if not os.path.exists("%s/rasters" % out):
+        if not os.path.exists(out):
+            os.mkdir(out)
+        os.mkdir("%s/rasters" % out)
+        os.mkdir("%s/rasters/scratchArc" % out)
+        os.mkdir("%s/joinTables" % out)
+        os.mkdir("%s/flowTables" % out)
+    
+    
+    NHDbounds = gpd.read_file(
+                            "%s/NHDPlusGlobalData/BoundaryUnit.shp" % nhd).drop(
+                                            ['AreaSqKM','DrainageID','Shape_Area',
+                                             'Shape_Leng','UnitName'], axis=1)
+    
+    #NHDtblMerge(nhd, NHDbounds, out)
+    makeBasins(nhd, NHDbounds, out)
+    #makeFlowTbls(nhd, out)    
+##############################################################################
+
+
+if __name__=='__main__':
+    if len(sys.argv) == 1: 
+        nhd_dir = askdirectory(title='Select the location of NHDPlusv21:',
+                                                               initialdir='.')
+        q = 'Select the location where you want LakeCat data written:'
+        out_dir = askdirectory(title=q, initialdir='.')
+    elif len(sys.argv) > 1:
+        nhd_dir = sys.argv[1]
+        out_dir = sys.argv[2]
+    print nhd_dir
+    print type(nhd_dir)
+    print out_dir
+    print type(out_dir)
+    #main(nhd_dir, out_dir)
+    
+##############################################################################
+
+    
+nhd = 'D:/NHDPlusv21'
+out = 'D:/Projects/LakeCat/play_makeBasins'
+bounds = gpd.read_file("%s/NHDPlusGlobalData/BoundaryUnit.shp" % nhd).drop(
+                                ['AreaSqKM','DrainageID','Shape_Area',
+                                 'Shape_Leng','UnitName'], axis=1)
+#                                 
+#
+#filename = askopenfilename(title='Select the file with UID and SITE_ID ',filetypes=[('Shapefile','.shp')],initialdir=os.getcwd())
+
+#def makeFlowTbls(nhd, out):
+#    inputs = NHDdict(nhd)
     
 

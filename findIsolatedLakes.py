@@ -9,8 +9,8 @@ import os
 import sys
 import geopandas as gpd
 sys.path.append('D:/Projects/LakeCat')
-from LakeCat_functions import NHDtblMerge, makeBasins, makeFlowTbls
-                 
+from LakeCat_functions import NHDtblMerge, makeBasins  #, makeFlowTbls
+               
 def main(NHDdir, outdir):
     
     # create directories to hold intermediate data
@@ -27,14 +27,16 @@ def main(NHDdir, outdir):
                                             ['AreaSqKM','DrainageID','Shape_Area',
                                              'Shape_Leng','UnitName'], axis=1)
     
-    NHDtblMerge(NHDdir, NHDbounds, outdir)
+    #NHDtblMerge(NHDdir, NHDbounds, outdir)
     makeBasins(NHDdir, NHDbounds, outdir)
-    makeFlowTbls(NHDdir, outdir)
+    #makeFlowTbls(NHDdir, outdir)
     
 if __name__ == '__main__':
     
 
-outdir = 'D:/Projects/LakeCat/play2'
+    outdir = 'D:/Projects/LakeCat/play3'
+    nhd = 'D:/NHDPlusv21'
+    main(nhd, outdir)
 ###############################################################################
 #out ='D:/Projects/LakeCat/play62post'
 #nhd = 'D:/NHDPlusv21'
