@@ -993,9 +993,9 @@ def main (nhd, out):
                                             ['AreaSqKM','DrainageID','Shape_Area',
                                              'Shape_Leng','UnitName'], axis=1)
     
-    #NHDtblMerge(nhd, NHDbounds, out)
+    NHDtblMerge(nhd, NHDbounds, out)
     makeBasins(nhd, NHDbounds, out)
-    #makeFlowTbls(nhd, out)    
+    
 ##############################################################################
 
 
@@ -1008,11 +1008,11 @@ if __name__=='__main__':
     elif len(sys.argv) > 1:
         nhd_dir = sys.argv[1]
         out_dir = sys.argv[2]
-    print nhd_dir
-    print type(nhd_dir)
-    print out_dir
-    print type(out_dir)
-    #main(nhd_dir, out_dir)
+#    print nhd_dir
+#    print type(nhd_dir)
+#    print out_dir
+#    print type(out_dir)
+    main(nhd_dir, out_dir)
     
 ##############################################################################
 
