@@ -943,7 +943,8 @@ def makeBasins (nhd, bounds, out):
             
             # add assoc. cats and areas to off-net lakes ----------------------
             lakes = lakes.merge(lkCat[['COMID','FEATUREID','AREASQKM']].rename(
-                                columns={'AREASQKM':'AREASQKM_cat'}), 
+                                columns={'FEATUREID':'catCOMID',
+                                         'AREASQKM':'catAREASQKM'}), 
                                 on='COMID')
             allOff = pd.concat([allOff,lakes.copy()])
             
@@ -963,15 +964,16 @@ def makeBasins (nhd, bounds, out):
         addOut = addOut.append(row, ignore_index=True)
     # write-out lakes that have a larger watershed 
     # than their containing catchment
+    flow_tbl.to_csv("%s/LakeCat_PlusFlow.csv" % out,index=False)
     problems.to_csv("%s/rasters/problems.csv" % out,index=False)
     allOff.to_file("%s/off-network.shp" % out)
     addOut.loc[len(addOut)] = pd.Series(
-                                        ['TOTALS', addOut['On-Network'].sum()],
-                                                                    index=cols)
+                                        ['TOTALS', 
+                                         addOut['out_of_raster'].sum()],
+                                         index=cols)
     qa_tbl = pd.read_csv("%s/Lake_QA.csv" % out)
     qa_tbl = pd.merge(qa_tbl, addOut, on='VPU')
     qa_tbl.to_csv("%s/Lake_QA.csv" % out, index=False)
-    flow_tbl.to_csv("%s/LakeCat_PlusFlow.csv" % out,index=False)
     purge(out, "off_net_")
 
 ##############################################################################
