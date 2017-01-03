@@ -656,10 +656,10 @@ def makeFlows(arr, shiftd, fdr, path, nd):
     val = iso * pth * arr 
     shiftval = iso * pth * shiftd
     idx = np.not_equal(val,shiftd)
-    tocom = val[idx]
-    fromcom = shiftval[idx]
-    tocom = tocom[tocom > 0]
-    fromcom = fromcom[fromcom > 0]    
+    fromcom = val[idx]
+    tocom = shiftval[idx]
+    fromcom = fromcom[fromcom > 0]
+    tocom = tocom[tocom > 0]    
     # don't load-in the entire array to the DF, just connection vals
     df = pd.DataFrame({'TOCOMID' : tocom, 
                        'FROMCOMID' : fromcom,
@@ -959,6 +959,7 @@ def makeBasins (nhd, bounds, out):
             problems = pd.concat([problems,bigs])
             flow_rpu = findFlows("%s/rasters/wtshds_%s.tif"%(out,rpu), 
                                  "%s/NHDPlusFdrFac%s/fdr" % (pre, rpu))
+            flow_rpu['RPU'] = rpu
         flow_tbl = pd.concat([flow_tbl, flow_rpu])
         row = pd.Series([zone, ttl_LOST], index=cols)
         addOut = addOut.append(row, ignore_index=True)
@@ -987,7 +988,7 @@ def main (nhd, out):
         os.mkdir("%s/rasters" % out)
         os.mkdir("%s/rasters/scratchArc" % out)
         os.mkdir("%s/joinTables" % out)
-        os.mkdir("%s/flowTables" % out)
+        #  os.mkdir("%s/flowTables" % out)
     
     
     NHDbounds = gpd.read_file(
