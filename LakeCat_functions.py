@@ -956,7 +956,7 @@ def makeBasins (nhd, bounds, out):
             bigs['diff'] = abs(bigs.AREASQKM - bigs.AreaSqKM_basin)
             bigs['VPU'] = zone
             bigs['RPU'] = rpu
-            problems = pd.concat([problems,bigs])
+            problems = pd.concat([problems,bigs], ignore_index=True)  #try ignore
             flow_rpu = findFlows("%s/rasters/wtshds_%s.tif"%(out,rpu), 
                                  "%s/NHDPlusFdrFac%s/fdr" % (pre, rpu))
             flow_rpu['RPU'] = rpu
