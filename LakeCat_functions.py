@@ -757,9 +757,11 @@ def NHDtblMerge(nhd, bounds, out):
     ---------
     wbs        : GeoDataFrame of NHDWaterbodies within the VPU
     '''
+    # build dict of hr/vpu labels to read through NHD
     inputs = NHDdict(nhd)
     vpus = bounds.query("UnitType == 'VPU'").copy()
-    onNet_connect = {}  # initialize dict to hold assoc. catchments for lakes lowest HYDROSEQ
+    # initialize containers to append to through processing
+    onNet_connect = {}    
     Obounds = gpd.GeoDataFrame()
     qa_cols=['Total Waterbodies','On-Network','Off-network','FTYPE_drop',
                                                      'Sink_add','Out_of_bounds']
@@ -769,19 +771,22 @@ def NHDtblMerge(nhd, bounds, out):
         hr = inputs[zone]
         pre = "%s/NHDPlus%s/NHDPlus%s" % (nhd, hr, zone)
         wbShp = gpd.read_file("%s/NHDSnapshot/Hydrography/NHDWaterbody.shp"%(pre))
+        # hold length of total Waterbodies 
         ttl_WB = len(wbShp)
-        ftype_x = len(wbShp)
+        # format columns and select out FTYPE
         wbShp.columns = wbShp.columns[:-1].str.upper().tolist() + ['geometry'] 
         wbShp = wbShp[['AREASQKM','COMID','FTYPE','geometry']]
         wbShp = wbShp.loc[wbShp['FTYPE'].isin(['LakePond','Reservoir'])]
-        ttl_FTYPE = ftype_x - len(wbShp)
+        # hold number of lakes removed from FTYPE
+        ttl_FTYPE = ttl_WB - len(wbShp)
         fl = dbf2DF("%s/NHDSnapshot/Hydrography/NHDFlowline.dbf"%(pre))[['COMID', 
                                                                     'WBAREACOMI']]
         cat = gpd.read_file('%s/NHDPlusCatchment/Catchment.shp'%(pre)).drop(
                             ['GRIDCODE', 'SOURCEFC'], axis=1)
         cat.columns = cat.columns[:-1].str.upper().tolist() + ['geometry']                         
         vaa = dbf2DF('%s/NHDPlusAttributes/PlusFlowlineVAA.dbf'%(pre))[['COMID',
-                                                                        'HYDROSEQ']]        
+                                                                        'HYDROSEQ']]
+        # merge all necessary NHD tables
         final = pd.merge(cat.drop('geometry', axis=1),fl,left_on='FEATUREID',
                            right_on='COMID',how='inner')
         final = pd.merge(wbShp.drop('geometry',axis=1),final,left_on='COMID',
@@ -790,7 +795,7 @@ def NHDtblMerge(nhd, bounds, out):
         final = pd.merge(final,vaa,left_on='COMID_cat',
                            right_on='COMID',how='left')
                            
-                           
+        # initialize containers for on-net lakes                   
         cols = ['catCOMID','wbCOMID','CatAreaSqKm']
         onNetDF = pd.DataFrame(columns=cols)
         catDict = {} # holds associated lake catchments to an on-network lake
@@ -803,7 +808,7 @@ def NHDtblMerge(nhd, bounds, out):
                                  base.AREASQKM_cat], index=cols)
                 onNetDF = onNetDF.append(row, ignore_index=True)
                 catDict[int(base.COMID_cat)] = group.FEATUREID.astype(int).tolist()
-    
+        # hold length of on-net lakes
         ttl_ON = len(onNetDF)
         # add in related sinks
         sinks = gpd.read_file("%s/NHDPlusBurnComponents/Sink.shp"%(pre))   
@@ -813,7 +818,9 @@ def NHDtblMerge(nhd, bounds, out):
             try:
                 assert len(sinks) > 0
                 catSink = sjoin(sinks, cat)
-                catSink = catSink[['FEATUREID_right','FEATUREID_left','AREASQKM']]
+                catSink = catSink[['FEATUREID_right',
+                                   'FEATUREID_left',
+                                   'AREASQKM']]
                 catSink.columns = cols
                 catSink = catSink.ix[catSink.wbCOMID.isin(wbShp.COMID)]  #this will remove any NHDWaterbody COMIDs that have the wrong FTYPE
                 catSink = catSink.ix[~catSink.wbCOMID.isin(onNetDF.wbCOMID)]  #remove any COMIDs that are already in the onNetDF
@@ -841,29 +848,36 @@ def NHDtblMerge(nhd, bounds, out):
         vpu = vpus.query("UnitID == '%s'" % zone)
         offCen = offLks.copy()
         offCen.geometry = offLks.geometry.centroid
-        oob = sjoin(offCen, vpu, op='within')[['AREASQKM','COMID','FTYPE',
+        # find centroids within the vpu
+        lkVPUjoin = sjoin(offCen, vpu, op='within')[['AREASQKM','COMID','FTYPE',
                                                 'UnitID','geometry']]
-        out_of_bounds = offLks.ix[~offLks.COMID.isin(oob.COMID)].copy()
+        # hold lakes that aren't within
+        out_of_bounds = offLks.ix[~offLks.COMID.isin(lkVPUjoin.COMID)].copy()
         out_of_bounds['VPU_orig'] = zone
-        outCen = offCen.ix[~offCen.COMID.isin(oob.COMID)]
+        # find the correct vpu for those out-of-bounds
+        outCen = offCen.ix[~offCen.COMID.isin(lkVPUjoin.COMID)]
         unit = sjoin(outCen, vpus, op='within')[['COMID','UnitID']]
         out_of_bounds = out_of_bounds.merge(unit, how='left', on='COMID')
-        
-        Obounds = pd.concat([Obounds,out_of_bounds])
-        offLks = offLks.ix[offLks.COMID.isin(oob.COMID)].copy()
+        # add out-of-bounds to GeoDF to hold all, and select only lakes within
+        # the vpu 
+        #Obounds = pd.concat([Obounds,out_of_bounds])
+        Obounds = gpd.GeoDataFrame( pd.concat([Obounds,out_of_bounds], 
+                                              ignore_index=True) )
+        offLks = offLks.ix[offLks.COMID.isin(lkVPUjoin.COMID)].copy()
         
         ttl_OOB = len(out_of_bounds)        
         ttl_OFF = len(offLks)
-
+        # add VPU info to offLks table
         offLks['VPU_orig'] = zone
         vpu_tbl = sjoin(offCen, vpus, op='within')[['COMID','UnitID']]
         offLks = offLks.merge(vpu_tbl, on='COMID', how='left')
-        
+        # write-out off-net lakes and add series of QA info to DF
         offLks.to_file("%s/off_net_%s.shp" % (out, zone))
         qa_tbl[zone] = [ttl_WB,ttl_ON,ttl_OFF,ttl_FTYPE,ttl_SINK,ttl_OOB]
-    
+    # write-out all zone DF's and the numpy files created to 
     Obounds.to_file("%s/out_of_bounds.shp" % out)
-    np.savez_compressed('%s/onNet_LakeCat.npz' % (out), Connect_arrays=onNet_connect)
+    np.savez_compressed('%s/onNet_LakeCat.npz' % (out), 
+                        Connect_arrays=onNet_connect)
     qa_tbl.index = qa_cols
     qa_tbl.T.index.rename('VPU', inplace=True)
     qa_tbl['TOTALS'] = qa_tbl.ix[:].sum(axis=1)
@@ -888,6 +902,7 @@ def makeBasins (nhd, bounds, out):
         print zone
         hr = inputs[zone]
         pre = "%s/NHDPlus%s/NHDPlus%s" % (nhd, hr, zone)
+        # get the lakes that were out-of-bounds into the correct vpu
         addLks = Obounds.ix[Obounds.UnitID == zone].copy()
         offLks = gpd.read_file("%s/off_net_%s.shp" % (out, zone))
         # add back-in lakes that are in other zones 
