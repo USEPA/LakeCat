@@ -25,7 +25,7 @@ import geopandas as gpd
 from rasterio import features
 from arcpy.sa import Watershed
 from geopandas.tools import sjoin
-from collections import OrderedDict
+from collections import deque, OrderedDict, defaultdict
 from tkFileDialog import askdirectory
 arcpy.CheckOutExtension("spatial")
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -224,6 +224,63 @@ def createAccumTable(table, directory, tbl_type, zone=""):
     add = Accumulation(table, COMIDs, lengths, upStream, tbl_type)
     
     return add
+##############################################################################
+
+
+def children(token, tree, chkset=None):
+    '''
+    __author__ = "Ryan Hill <hill.ryan@epa.gov>"
+                 "Marc Weber <weber.marc@epa.gov>"
+    returns a list of every child
+
+    Arguments
+    ---------
+    token           : a single COMID
+    tree            : Full dictionary of list of upstream COMIDs for each COMID in the zone
+    chkset          : set of all the NHD catchment COMIDs used to remove flowlines with no associated catchment
+    '''
+    visited = set()
+    to_crawl = deque([token])
+    while to_crawl:
+        current = to_crawl.popleft()
+        if current in visited:
+            continue
+        visited.add(current)
+        node_children = set(tree[current])
+        to_crawl.extendleft(node_children - visited)
+    #visited.remove(token)
+    if chkset != None:
+        visited = visited.intersection(chkset)
+    return list(visited)
+##############################################################################
+
+
+def bastards(token, tree, chkset=None):
+    '''
+    __author__ = "Ryan Hill <hill.ryan@epa.gov>"
+                 "Marc Weber <weber.marc@epa.gov>"
+    returns a list of every child w/ out father (key) included
+
+    Arguments
+    ---------
+    token           : a single COMID
+    tree            : Full dictionary of list of upstream COMIDs for each COMID in the zone
+    chkset          : set of all the NHD catchment COMIDs, used to remove flowlines with no associated catchment
+    '''
+    visited = set()
+    to_crawl = deque([token])
+    while to_crawl:
+        current = to_crawl.popleft()
+        if current in visited:
+            continue
+        visited.add(current)
+        node_children = set(tree[current])
+        to_crawl.extendleft(node_children - visited)
+    visited.remove(token)
+    if chkset != None:
+        visited = visited.intersection(chkset)
+    return list(visited)
+
 ##############################################################################
 
     
@@ -506,8 +563,8 @@ def makeRat(fn):
     
     # Create and populate the RAT
     rat = gdal.RasterAttributeTable()
-    rat.CreateColumn('VALUE', gdal.GFT_Integer, gdal.GFU_Generic)
-    rat.CreateColumn('COUNT', gdal.GFT_Integer, gdal.GFU_Generic)
+    rat.CreateColumn('Value', gdal.GFT_Integer, gdal.GFU_Generic)
+    rat.CreateColumn('Count', gdal.GFT_Integer, gdal.GFU_Generic)
     for i in range(u[0].size):
         rat.SetValueAsInt(i, 0, int(u[0][i]))
         rat.SetValueAsInt(i, 1, int(u[1][i]))
@@ -577,7 +634,7 @@ def DF2dbf(df, dbf_path, my_specs=None):
                      float: ('N', 36, 15),
                      np.float64: ('N', 36, 15),
                      str: ('C', 14, 0),
-                     np.int32: ('N', 20, 0)
+                     np.int32: ('N', 14, 0)
                      }
         types = [type(df[i].iloc[0]) for i in df.columns]
         specs = [type2spec[t] for t in types]
@@ -908,7 +965,7 @@ def makeBasins (nhd, bounds, out):
         # add back-in lakes that are in other zones 
         offLks = pd.concat([offLks,addLks]).reset_index().drop('index',axis=1)
         offLks.rename(columns={'UnitID':'VPU_moved'}, inplace=True)
-        cat = gpd.read_file('%s/NHDPlusCatchment/Catchment.shp'%(pre))
+        
         # make lake and watershed rasters
         ttl_LOST = 0
         for rpu in rasterUnits[zone]:
@@ -941,7 +998,10 @@ def makeBasins (nhd, bounds, out):
                                             out=lksArray,
                                             out_shape=lksArray.shape,
                                             transform=lksRas.transform)
-                lksRas.write(burned.astype(np.uint32), indexes=1)    
+                lksRas.write(burned.astype(np.uint32), indexes=1)
+            rat = makeRat("%s/rasters/lakes_%s.tif"%(out,rpu))
+            DF2dbf(rat, "%s/rasters/lakes_%s.tif.vat.dbf"%(out,rpu), 
+                                       my_specs=[('N', 10, 0), ('F', 19, 11)])
             outWshed = Watershed("%s/NHDPlusFdrFac%s/fdr" % (pre, rpu),
                                  "%s/rasters/lakes_%s.tif" % (out, rpu),
                                   "VALUE")
@@ -949,10 +1009,12 @@ def makeBasins (nhd, bounds, out):
             
             rat = makeRat("%s/rasters/wtshds_%s.tif"%(out,rpu))
             ttl_LOST += (len(lakes) - len(rat))
-            DF2dbf(rat, "%s/rasters/wtshds_%s.tif.vat.dbf"%(out,rpu))
+            DF2dbf(rat, "%s/rasters/wtshds_%s.tif.vat.dbf"%(out,rpu), 
+                                       my_specs=[('N', 10, 0), ('F', 19, 11)])
             centroids = lakes.to_crs({'init': u'epsg:4269'}).copy().drop(
                                                             'AREASQKM',axis=1)
-            centroids.geometry = centroids.centroid 
+            centroids.geometry = centroids.centroid
+            cat = gpd.read_file('%s/NHDPlusCatchment/Catchment.shp'%(pre))
             lkCat = sjoin(centroids, cat, op='within', how='left')
             lkCat.columns = lkCat.columns.str.upper()
             
@@ -965,8 +1027,8 @@ def makeBasins (nhd, bounds, out):
             
             # compare basin sizes ---------------------------------------------
             both = pd.merge(lkCat[['COMID','FEATUREID','AREASQKM']], rat,
-                            how='inner', left_on='COMID', right_on='VALUE')
-            both['AreaSqKM_basin'] = (both.COUNT * 900) * 1e-6
+                            how='inner', left_on='COMID', right_on='Value')
+            both['AreaSqKM_basin'] = (both.Count * 900) * 1e-6
             bigs = both.ix[both.AREASQKM < both.AreaSqKM_basin].copy()
             bigs['diff'] = abs(bigs.AREASQKM - bigs.AreaSqKM_basin)
             bigs['VPU'] = zone
@@ -990,8 +1052,184 @@ def makeBasins (nhd, bounds, out):
     qa_tbl = pd.read_csv("%s/Lake_QA.csv" % out)
     qa_tbl = pd.merge(qa_tbl, addOut, on='VPU')
     qa_tbl.to_csv("%s/Lake_QA.csv" % out, index=False)
-    purge(out, "off_net_")
+    purge(out, "off_net_")  # delete the individual zone files
 
+##############################################################################
+
+
+def makeNParrays(loc):
+    '''
+    __author__ =  "Rick Debbout <debbout.rick@epa.gov>"
+    Creates numpy arrays for LakeCat, uses a 'PlusFlow' table with 
+    TOCOMID/FROMCOMID fields along with a shapefile dbf that holds all 
+    of the unique id values that were used to check for connections.
+
+    Arguments
+    ---------
+    loc        : location of LakeCat output directory
+
+    '''    
+    flow = pd.read_csv("%s/LakeCat_PlusFlow.csv" % loc)
+    fcom,tcom = flow.FROMCOMID.values,flow.TOCOMID.values
+    UpCOMs = defaultdict(list)
+    for i in range(0, len(flow), 1):
+        FROMCOMID = fcom[i]
+        if FROMCOMID == 0:
+            UpCOMs[tcom[i]] = []
+        else:
+            UpCOMs[tcom[i]].append(FROMCOMID)
+    # get unique IDs from shapefile dbf    
+    tbl = dbf2DF('%s/off-network.dbf' % loc)
+    coms = tbl.COMID.values
+    
+    directory = '%s/LakeCat_npy' % loc
+    if not os.path.exists(directory):
+        os.mkdir(directory)
+    if not os.path.exists(directory + '/bastards'):
+        os.mkdir(directory + '/bastards')
+        os.mkdir(directory + '/children')     # create bastard arrays
+    a = map(lambda x: bastards(x, UpCOMs), coms)
+    lengths = np.array([len(v) for v in a])
+    a = np.int32(np.hstack(np.array(a)))    #Convert to 1d vector
+    wba = directory + '/bastards' 
+    np.save(wba+'/upStream.npy',a)
+    np.save(wba+'/comids.npy',coms)
+    np.save(wba+'/lengths.npy',lengths)    
+    # create children arrays    
+    a = map(lambda x: children(x, UpCOMs), coms)
+    lengths = np.array([len(v) for v in a])
+    a = np.int32(np.hstack(np.array(a)))    #Convert to 1d vector
+    wdb = directory + '/children'
+    np.save(wdb+'/upStream.npy',a)
+    np.save(wdb+'/comids.npy',coms)
+    np.save(wdb+'/lengths.npy',lengths)
+    
+##############################################################################
+
+
+#a = np.load(loc +'/LakeCat_npy/bastards/upStream.npy')
+#coms = np.load(loc +'/LakeCat_npy/bastards/comids.npy')
+#lengths = np.load(loc +'/LakeCat_npy/bastards/lengths.npy')
+#
+#[237085, 237099, 237106, 237109, 238391, 238400, 238447, 238475,
+#        238477, 238481, 238483, 238515, 238798]
+#
+#coms[237099]
+#(lengths > 50).nonzero()
+#
+#e = findUpstreamNpy('', 55622, loc +'/LakeCat_npy/bastards')
+#
+#
+#oldDir = 'D:/NHDPlusV21/LakeCat_npy/bastards'
+#ocoms = np.load(oldDir +'/comids.npy')
+#r = np.setdiff1d(ocoms, coms)
+#
+#
+#np.sort(lengths)
+#
+## mosaic rasters
+#import os
+#import numpy as np
+#import georasters as gr
+#home = 'D:/Projects/LakeCat/play_wknd2/rasters'
+#for f in os.listdir(home):
+#    if '.tif' in f and 'wtshds' in f and not '.aux' in f and not '.vat' in f:
+#        print f
+#a = 'wtshds_04b.tif'
+#b = 'wtshds_01a.tif'
+#raster = home + '/' + a
+#raster2 = home + '/' + b
+#
+#(alignedraster_o, alignedraster_a, GeoT_a) = gr.align_rasters(raster, raster2, how=np.mean)
+#
+#data = gr.from_file(raster2)
+#data.raster
+#type(data.raster)
+#len(data.raster)
+#data.shape
+#data.count()
+#data.raster.fill_value
+#q = data.raster.filled()
+#
+#import rasterio as rs
+#from rasterio import features
+#from affine import Affine
+#
+#data.geot[0]
+#data.geot[3]
+#tr = Affine.from_gdal(*(data.geot[0],30.0,0.0,data.geot[3],0.0,-30.0))
+#mask = q != -2147483647.0
+#shapes = list(features.shapes(q, mask=mask, connectivity=8, transform=tr))
+#
+#
+## make shapefiles of watersheds and concat, then rasterize??
+#import geopandas as gpd
+#import json
+#    
+#wk = []    
+#for f in os.listdir(home):
+#    if '.tif' in f and 'wtshds' in f and not '.aux' in f and not '.vat' in f:
+#        wk.append(f)
+#
+#src = rs.open('%s/%s' % (home, ras)) 
+#src.profile       
+#for ras in wk:
+#    #ras = wk[0]   
+#    data = gr.from_file('%s/%s' % (home, ras))
+#    q = data.raster.filled()
+#    tr = Affine.from_gdal(*(data.geot[0],30.0,0.0,data.geot[3],0.0,-30.0))
+#    mask = data != -2147483647.0
+#    shapes = list(features.shapes(q, mask=mask, connectivity=8, transform=tr))
+#    
+#    results = ({
+#            'type': 'Feature', 
+#            'properties': {'COMID': v}, 
+#            'geometry': s }
+#        for i, (s, v) 
+#            in enumerate(shapes))
+#    
+#    collection = {
+#        'type': 'FeatureCollection', 
+#        'features': list(results) }
+#    
+#    with open('%s/shapes/%s.json' % (home, ras.split('.')[0]), 'w') as dst:
+#        json.dump(collection, dst)
+#
+#    tbl = gpd.read_file('%s/shapes/%s.json' % (home, ras.split('.')[0]))
+#    tbl.crs = {'init': u'epsg:5070'}
+#    tbl.to_file('%s/shapes/%s.shp' % (home, ras.split('.')[0]))
+#
+#
+#tbl2 = tbl.to_crs({'init': u'epsg:5070'})
+#tbl2.crs
+#tbl.to_file('%s/%s49.shp' % (home, ras.split('.')[0]))
+#tbl2.to_file('%s/%s2.shp' % (home, ras.split('.')[0]))
+#NHDbounds.crs
+#tbl3 = tbl.to_crs(NHDbounds.crs)
+#tbl3.to_file('%s/%s3.shp' % (home, ras.split('.')[0]))
+#tbl3.crs
+#NDV, xsize, ysize, GeoT, Projection, DataType = gr.get_geo_info(raster2)
+#Projection.IsProjected()
+#Projection.IsGeographic()
+#Projection.GetAttrValue()
+#Projection.ExportToWkt()
+#tbl.index
+#list(tbl.ix[0].geometry.exterior.coords)
+#
+#tot = gpd.GeoDataFrame()
+#ct = 0
+#for lks in os.listdir(home + '/shapes2'):
+#    if lks[-5:] == '.json':
+#        print lks
+#        break
+#        g = gpd.read_file(home + '/shapes2/' + lks)
+#        ct += len(g)
+#        g.crs = {'init': u'epsg:5070'}
+#        g.COMID = g.COMID.astype(np.int32)
+#        g.to_file(home + '/shapes/' + lks.split('.')[0] + '.shp')
+#        tot = pd.concat([tot, g])
+#        
+#tot.to_file(home + '/shapes/lakeCat2.shp')
 ##############################################################################
 
 
@@ -1011,7 +1249,7 @@ def main (nhd, out):
                                             ['AreaSqKM','DrainageID','Shape_Area',
                                              'Shape_Leng','UnitName'], axis=1)
     
-    NHDtblMerge(nhd, NHDbounds, out)
+    #NHDtblMerge(nhd, NHDbounds, out)
     makeBasins(nhd, NHDbounds, out)
     
 ##############################################################################
