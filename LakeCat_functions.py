@@ -963,7 +963,11 @@ def makeBasins (nhd, bounds, out):
         addLks = Obounds.ix[Obounds.UnitID == zone].copy()
         offLks = gpd.read_file("%s/off_net_%s.shp" % (out, zone))
         # add back-in lakes that are in other zones 
-        offLks = pd.concat([offLks,addLks]).reset_index().drop('index',axis=1)
+        offLks = gpd.GeoDataFrame( pd.concat([offLks,addLks], 
+                                              ignore_index=True)).reset_index(
+                                              ).drop('index',axis=1)
+        
+        #offLks = pd.concat([offLks,addLks]).reset_index().drop('index',axis=1)
         offLks.rename(columns={'UnitID':'VPU_moved'}, inplace=True)
         
         # make lake and watershed rasters
@@ -1023,6 +1027,8 @@ def makeBasins (nhd, bounds, out):
                                 columns={'FEATUREID':'catCOMID',
                                          'AREASQKM':'catAREASQKM'}), 
                                 on='COMID')
+            allOff = gpd.GeoDataFrame( pd.concat([allOff,lakes.copy()], 
+                                              ignore_index=True) )
             allOff = pd.concat([allOff,lakes.copy()])
             
             # compare basin sizes ---------------------------------------------
@@ -1033,11 +1039,13 @@ def makeBasins (nhd, bounds, out):
             bigs['diff'] = abs(bigs.AREASQKM - bigs.AreaSqKM_basin)
             bigs['VPU'] = zone
             bigs['RPU'] = rpu
-            problems = pd.concat([problems,bigs], ignore_index=True)  #try ignore
+            
+            problems = pd.concat([problems,bigs], ignore_index=True)  # pd.DF
             flow_rpu = findFlows("%s/rasters/wtshds_%s.tif"%(out,rpu), 
                                  "%s/NHDPlusFdrFac%s/fdr" % (pre, rpu))
             flow_rpu['RPU'] = rpu
-        flow_tbl = pd.concat([flow_tbl, flow_rpu])
+        
+        flow_tbl = pd.concat([flow_tbl, flow_rpu])  # pd.DF
         row = pd.Series([zone, ttl_LOST], index=cols)
         addOut = addOut.append(row, ignore_index=True)
     # write-out lakes that have a larger watershed 

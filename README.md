@@ -1,19 +1,17 @@
 # LakeCat
 
-The LakeCat DataSet provides summaries of natural and anthropogenic landscape features for ~377,000 lake watershed basins within the conterminous USA using the [NHDPlus Version 2](http://www.horizon-systems.com/NHDPlus/NHDPlusV2_data.php) as the geospatial framework. 
+The LakeCat DataSet provides summaries of natural and anthropogenic landscape features for ~377,000 lakes and their associated catchments within the conterminous USA using the [NHDPlus Version 2](http://www.horizon-systems.com/NHDPlus/NHDPlusV2_data.php) as the geospatial framework. 
 
-## On-Network vs. Off-Network
+## Determining On-Network and Off-Network Lakes
 
-To begin, we determine which NHD waterbodies are on the NHD network based on joining the following tables within each hydroregion:
+To begin, we determine which NHD waterbodies are on the NHD network based on joining the following tables within each NHDPlusV2 HydroRegion (see code in *FindIsolatedLakes.py*):
 
   * NHDWaterbodies
   * NHDFlowline
   * Catchment
   * PlusFlowlineVAA
   
-*See the FindIsolatedLakes.py script for methods used*
-
-Lakes that are associated to flowlines through the 'WBAREACOMID' in the NHDFlowline file can use the methods from StreamCat to accumulate watershed characteristics. These will be On_Network Lakes. The remaining waterbodies have gone through the off-network process to define watershed characteristics, saved as IsolatedLakes.shp file. 
+Lakes that are associated to flowlines through the 'WBAREACOMID' in the NHDFlowline file can use data directly from StreamCat to represent watershed-level landscape characteristics and are designated as *On_Network* lakes. The remaining waterbodies are not on the stream network (as depicted with the NHDFlowline file) and are designated as *Off_Network* lakes and saved as *IsolatedLakes.shp*. Watershed characteristics are developed for these lakes using the Off_Network Process (see below).
 
 ## Off_Network Process
 
