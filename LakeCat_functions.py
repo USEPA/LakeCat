@@ -1019,7 +1019,7 @@ def main (nhd, out):
                                             ['AreaSqKM','DrainageID','Shape_Area',
                                              'Shape_Leng','UnitName'], axis=1)
     
-    NHDtblMerge(nhd, NHDbounds, out)
+    #NHDtblMerge(nhd, NHDbounds, out)
     makeBasins(nhd, NHDbounds, out)
     
 ##############################################################################
