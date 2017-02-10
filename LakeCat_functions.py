@@ -47,30 +47,74 @@ Tk().withdraw()
 #                'PARAMETER["standard_parallel_2",45.5],'\
 #                'PARAMETER["latitude_of_origin",23.0],'\
 #                'UNIT["Meter",1.0]]'
-    
-fiftyseventy = 'PROJCS["NAD83 / Conus Albers",'\
-                  'GEOGCS["NAD83",'\
-                    'DATUM["North American Datum 1983",'\
-                      'SPHEROID["GRS 1980", 6378137.0, 298.257222101, AUTHORITY["EPSG","7019"]],'\
-                      'TOWGS84[1.0, 1.0, -1.0, 0.0, 0.0, 0.0, 0.0],'\
-                      'AUTHORITY["EPSG","6269"]],'\
-                    'PRIMEM["Greenwich", 0.0, AUTHORITY["EPSG","8901"]],'\
-                    'UNIT["degree", 0.017453292519943295],'\
-                    'AXIS["Geodetic longitude", EAST],'\
-                    'AXIS["Geodetic latitude", NORTH],'\
-                    'AUTHORITY["EPSG","4269"]],'\
-                  'PROJECTION["Albers Equal Area", AUTHORITY["EPSG","9822"]],'\
-                  'PARAMETER["central_meridian", -96.0],'\
-                  'PARAMETER["latitude_of_origin", 23.0],'\
-                  'PARAMETER["standard_parallel_1", 29.5],'\
-                  'PARAMETER["false_easting", 0.0],'\
-                  'PARAMETER["false_northing", 0.0],'\
-                  'PARAMETER["standard_parallel_2", 45.5],'\
-                  'UNIT["m", 1.0],'\
-                  'AXIS["Easting", EAST],'\
-                  'AXIS["Northing", NORTH],'\
-                  'AUTHORITY["EPSG","5070"]]'
+#    
+#fiftyseventy = 'PROJCS["NAD83 / Conus Albers",'\
+#                  'GEOGCS["NAD83",'\
+#                    'DATUM["North American Datum 1983",'\
+#                      'SPHEROID["GRS 1980", 6378137.0, 298.257222101, AUTHORITY["EPSG","7019"]],'\
+#                      'TOWGS84[1.0, 1.0, -1.0, 0.0, 0.0, 0.0, 0.0],'\
+#                      'AUTHORITY["EPSG","6269"]],'\
+#                    'PRIMEM["Greenwich", 0.0, AUTHORITY["EPSG","8901"]],'\
+#                    'UNIT["degree", 0.017453292519943295],'\
+#                    'AXIS["Geodetic longitude", EAST],'\
+#                    'AXIS["Geodetic latitude", NORTH],'\
+#                    'AUTHORITY["EPSG","4269"]],'\
+#                  'PROJECTION["Albers Equal Area", AUTHORITY["EPSG","9822"]],'\
+#                  'PARAMETER["central_meridian", -96.0],'\
+#                  'PARAMETER["latitude_of_origin", 23.0],'\
+#                  'PARAMETER["standard_parallel_1", 29.5],'\
+#                  'PARAMETER["false_easting", 0.0],'\
+#                  'PARAMETER["false_northing", 0.0],'\
+#                  'PARAMETER["standard_parallel_2", 45.5],'\
+#                  'UNIT["m", 1.0],'\
+#                  'AXIS["Easting", EAST],'\
+#                  'AXIS["Northing", NORTH],'\
+#                  'AUTHORITY["EPSG","5070"]]'
+#                    
+# 
+#fiftyseventy =  'PROJCS["NAD83 / Conus Albers",'\  DOESN'T WORK
+#                    'GEOGCS["NAD83",'\
+#                        'DATUM["North_American_Datum_1983",'\
+#                            'SPHEROID["GRS 1980",6378137,298.257222101,'\
+#                                'AUTHORITY["EPSG","7019"]],'\
+#                            'TOWGS84[0,0,0,0,0,0,0],'\
+#                            'AUTHORITY["EPSG","6269"]],'\
+#                        'PRIMEM["Greenwich",0,'\
+#                            'AUTHORITY["EPSG","8901"]],'\
+#                        'UNIT["degree",0.0174532925199433,'\
+#                            'AUTHORITY["EPSG","9122"]],'\
+#                        'AUTHORITY["EPSG","4269"]],'\
+#                    'PROJECTION["Albers_Conic_Equal_Area"],'\
+#                    'PARAMETER["standard_parallel_1",29.5],'\
+#                    'PARAMETER["standard_parallel_2",45.5],'\
+#                    'PARAMETER["latitude_of_center",23],'\
+#                    'PARAMETER["longitude_of_center",-96],'\
+#                    'PARAMETER["false_easting",0],'\
+#                    'PARAMETER["false_northing",0],'\
+#                    'UNIT["metre",1,'\
+#                        'AUTHORITY["EPSG","9001"]],'\
+#                    'AXIS["X",EAST],'\
+#                    'AXIS["Y",NORTH],'\
+#                    'AUTHORITY["EPSG","5070"]]'
+                    
+                          
 
+fiftyseventy =  'PROJCS["Albers_Conic_Equal_Area",'\
+                  'GEOGCS["GCS_GRS_1980_IUGG_1980",'\
+                    'DATUM["D_unknown",'\
+                	  'SPHEROID["GRS80",6378137.0,298.257222101]],'\
+                	'PRIMEM["Greenwich",0.0],'\
+                	  'UNIT["Degree",0.0174532925199433]],'\
+                	'PROJECTION["Albers"],'\
+                	'PARAMETER["false_easting",0.0],'\
+                	'PARAMETER["false_northing",0.0],'\
+                	'PARAMETER["central_meridian",-96.0],'\
+                	'PARAMETER["standard_parallel_1",29.5],'\
+                	'PARAMETER["standard_parallel_2",45.5],'\
+                	'PARAMETER["latitude_of_origin",23.0],'\
+                	'UNIT["Meter",1.0]]'
+                          
+                          
 def dbfreader(f):
     """Returns an iterator over records in a Xbase DBF file.
 
@@ -819,7 +863,7 @@ def NHDtblMerge(nhd, bounds, out):
     vpus = bounds.query("UnitType == 'VPU'").copy()
     # initialize containers to append to through processing
     onNet_connect = {}    
-    Obounds = gpd.GeoDataFrame()
+    Obounds = gpd.GeoDataFrame(crs={'init': u'epsg:4269'})
     qa_cols=['Total Waterbodies','On-Network','Off-network','FTYPE_drop',
                                                      'Sink_add','Out_of_bounds']
     qa_tbl = pd.DataFrame()                                                 
@@ -917,9 +961,9 @@ def NHDtblMerge(nhd, bounds, out):
         out_of_bounds = out_of_bounds.merge(unit, how='left', on='COMID')
         # add out-of-bounds to GeoDF to hold all, and select only lakes within
         # the vpu 
-        #Obounds = pd.concat([Obounds,out_of_bounds])
-        Obounds = gpd.GeoDataFrame( pd.concat([Obounds,out_of_bounds], 
-                                              ignore_index=True) )
+        Obounds = pd.concat([Obounds,out_of_bounds])
+#        Obounds = gpd.GeoDataFrame( pd.concat([Obounds,out_of_bounds], 
+#                                              ignore_index=True) )
         offLks = offLks.ix[offLks.COMID.isin(lkVPUjoin.COMID)].copy()
         
         ttl_OOB = len(out_of_bounds)        
@@ -931,7 +975,8 @@ def NHDtblMerge(nhd, bounds, out):
         # write-out off-net lakes and add series of QA info to DF
         offLks.to_file("%s/off_net_%s.shp" % (out, zone))
         qa_tbl[zone] = [ttl_WB,ttl_ON,ttl_OFF,ttl_FTYPE,ttl_SINK,ttl_OOB]
-    # write-out all zone DF's and the numpy files created to 
+    # write-out all zone DF's and the numpy files created to
+    assert Obounds.crs == {'init': u'epsg:4269'}
     Obounds.to_file("%s/out_of_bounds.shp" % out)
     np.savez_compressed('%s/onNet_LakeCat.npz' % (out), 
                         Connect_arrays=onNet_connect)
@@ -945,7 +990,7 @@ def NHDtblMerge(nhd, bounds, out):
 
 def makeBasins (nhd, bounds, out):
     problems = pd.DataFrame()  # holding for overdrawn basin delineations
-    allOff = gpd.GeoDataFrame()
+    allOff = gpd.GeoDataFrame(crs={'init': u'epsg:4269'})
     inputs = NHDdict(nhd)
     rasterUnits = NHDdict(nhd, unit='RPU')
     rpus = bounds.query("UnitType == 'RPU'").copy()
@@ -963,14 +1008,14 @@ def makeBasins (nhd, bounds, out):
         addLks = Obounds.ix[Obounds.UnitID == zone].copy()
         offLks = gpd.read_file("%s/off_net_%s.shp" % (out, zone))
         # add back-in lakes that are in other zones 
-        offLks = gpd.GeoDataFrame( pd.concat([offLks,addLks], 
-                                              ignore_index=True)).reset_index(
-                                              ).drop('index',axis=1)
-        
+        t = pd.concat([offLks,addLks])
+
+        assert offLks.crs == {'init': u'epsg:4269'}
         #offLks = pd.concat([offLks,addLks]).reset_index().drop('index',axis=1)
         offLks.rename(columns={'UnitID':'VPU_moved'}, inplace=True)
         
         # make lake and watershed rasters
+        p4 = '+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=1,1,-1,0,0,0,0 +units=m +no_defs'
         ttl_LOST = 0
         for rpu in rasterUnits[zone]:
             #break
@@ -987,13 +1032,13 @@ def makeBasins (nhd, bounds, out):
             
             fdr = rs.open("%s/NHDPlusFdrFac%s/fdr" % (pre, rpu))
             if fdr.crs != lakes.crs:
-                lakes.to_crs(fdr.crs, inplace=True)
+                lakes.to_crs({'init': u'epsg:5070'}, inplace=True)
             meta = fdr.meta.copy()
-            meta.update(compress='lzw')
-            meta.update(nodata=0,
+            meta.update(compress='lzw',
+                        nodata=0,
                         dtype=rs.uint32,
                         driver='GTiff',
-                        crs={'init': u'epsg:5070'})
+                        crs=p4)
             with rs.open("%s/rasters/lakes_%s.tif" % (out, rpu),
                          'w', **meta) as lksRas:
                 lksArray = lksRas.read(1)
@@ -1002,7 +1047,7 @@ def makeBasins (nhd, bounds, out):
                                             out=lksArray,
                                             out_shape=lksArray.shape,
                                             transform=lksRas.transform)
-                lksRas.write(burned.astype(np.uint32), indexes=1)
+                lksRas.write(burned.astype(rs.uint32), indexes=1)
             rat = makeRat("%s/rasters/lakes_%s.tif"%(out,rpu))
             DF2dbf(rat, "%s/rasters/lakes_%s.tif.vat.dbf"%(out,rpu), 
                                        my_specs=[('N', 10, 0), ('F', 19, 11)])
@@ -1023,12 +1068,12 @@ def makeBasins (nhd, bounds, out):
             lkCat.columns = lkCat.columns.str.upper()
             
             # add assoc. cats and areas to off-net lakes ----------------------
+            lakes = lakes.to_crs({'init': u'epsg:4269'}).copy()
             lakes = lakes.merge(lkCat[['COMID','FEATUREID','AREASQKM']].rename(
                                 columns={'FEATUREID':'catCOMID',
                                          'AREASQKM':'catAREASQKM'}), 
                                 on='COMID')
-            allOff = gpd.GeoDataFrame( pd.concat([allOff,lakes.copy()], 
-                                              ignore_index=True) )
+
             allOff = pd.concat([allOff,lakes.copy()])
             
             # compare basin sizes ---------------------------------------------
@@ -1052,6 +1097,7 @@ def makeBasins (nhd, bounds, out):
     # than their containing catchment
     flow_tbl.to_csv("%s/LakeCat_PlusFlow.csv" % out,index=False)
     problems.to_csv("%s/rasters/problems.csv" % out,index=False)
+    allOff.to_crs(offLks.crs,inplace=True)
     allOff.to_file("%s/off-network.shp" % out)
     addOut.loc[len(addOut)] = pd.Series(
                                         ['TOTALS', 
@@ -1114,130 +1160,6 @@ def makeNParrays(loc):
     
 ##############################################################################
 
-
-#a = np.load(loc +'/LakeCat_npy/bastards/upStream.npy')
-#coms = np.load(loc +'/LakeCat_npy/bastards/comids.npy')
-#lengths = np.load(loc +'/LakeCat_npy/bastards/lengths.npy')
-#
-#[237085, 237099, 237106, 237109, 238391, 238400, 238447, 238475,
-#        238477, 238481, 238483, 238515, 238798]
-#
-#coms[237099]
-#(lengths > 50).nonzero()
-#
-#e = findUpstreamNpy('', 55622, loc +'/LakeCat_npy/bastards')
-#
-#
-#oldDir = 'D:/NHDPlusV21/LakeCat_npy/bastards'
-#ocoms = np.load(oldDir +'/comids.npy')
-#r = np.setdiff1d(ocoms, coms)
-#
-#
-#np.sort(lengths)
-#
-## mosaic rasters
-#import os
-#import numpy as np
-#import georasters as gr
-#home = 'D:/Projects/LakeCat/play_wknd2/rasters'
-#for f in os.listdir(home):
-#    if '.tif' in f and 'wtshds' in f and not '.aux' in f and not '.vat' in f:
-#        print f
-#a = 'wtshds_04b.tif'
-#b = 'wtshds_01a.tif'
-#raster = home + '/' + a
-#raster2 = home + '/' + b
-#
-#(alignedraster_o, alignedraster_a, GeoT_a) = gr.align_rasters(raster, raster2, how=np.mean)
-#
-#data = gr.from_file(raster2)
-#data.raster
-#type(data.raster)
-#len(data.raster)
-#data.shape
-#data.count()
-#data.raster.fill_value
-#q = data.raster.filled()
-#
-#import rasterio as rs
-#from rasterio import features
-#from affine import Affine
-#
-#data.geot[0]
-#data.geot[3]
-#tr = Affine.from_gdal(*(data.geot[0],30.0,0.0,data.geot[3],0.0,-30.0))
-#mask = q != -2147483647.0
-#shapes = list(features.shapes(q, mask=mask, connectivity=8, transform=tr))
-#
-#
-## make shapefiles of watersheds and concat, then rasterize??
-#import geopandas as gpd
-#import json
-#    
-#wk = []    
-#for f in os.listdir(home):
-#    if '.tif' in f and 'wtshds' in f and not '.aux' in f and not '.vat' in f:
-#        wk.append(f)
-#
-#src = rs.open('%s/%s' % (home, ras)) 
-#src.profile       
-#for ras in wk:
-#    #ras = wk[0]   
-#    data = gr.from_file('%s/%s' % (home, ras))
-#    q = data.raster.filled()
-#    tr = Affine.from_gdal(*(data.geot[0],30.0,0.0,data.geot[3],0.0,-30.0))
-#    mask = data != -2147483647.0
-#    shapes = list(features.shapes(q, mask=mask, connectivity=8, transform=tr))
-#    
-#    results = ({
-#            'type': 'Feature', 
-#            'properties': {'COMID': v}, 
-#            'geometry': s }
-#        for i, (s, v) 
-#            in enumerate(shapes))
-#    
-#    collection = {
-#        'type': 'FeatureCollection', 
-#        'features': list(results) }
-#    
-#    with open('%s/shapes/%s.json' % (home, ras.split('.')[0]), 'w') as dst:
-#        json.dump(collection, dst)
-#
-#    tbl = gpd.read_file('%s/shapes/%s.json' % (home, ras.split('.')[0]))
-#    tbl.crs = {'init': u'epsg:5070'}
-#    tbl.to_file('%s/shapes/%s.shp' % (home, ras.split('.')[0]))
-#
-#
-#tbl2 = tbl.to_crs({'init': u'epsg:5070'})
-#tbl2.crs
-#tbl.to_file('%s/%s49.shp' % (home, ras.split('.')[0]))
-#tbl2.to_file('%s/%s2.shp' % (home, ras.split('.')[0]))
-#NHDbounds.crs
-#tbl3 = tbl.to_crs(NHDbounds.crs)
-#tbl3.to_file('%s/%s3.shp' % (home, ras.split('.')[0]))
-#tbl3.crs
-#NDV, xsize, ysize, GeoT, Projection, DataType = gr.get_geo_info(raster2)
-#Projection.IsProjected()
-#Projection.IsGeographic()
-#Projection.GetAttrValue()
-#Projection.ExportToWkt()
-#tbl.index
-#list(tbl.ix[0].geometry.exterior.coords)
-#
-#tot = gpd.GeoDataFrame()
-#ct = 0
-#for lks in os.listdir(home + '/shapes2'):
-#    if lks[-5:] == '.json':
-#        print lks
-#        break
-#        g = gpd.read_file(home + '/shapes2/' + lks)
-#        ct += len(g)
-#        g.crs = {'init': u'epsg:5070'}
-#        g.COMID = g.COMID.astype(np.int32)
-#        g.to_file(home + '/shapes/' + lks.split('.')[0] + '.shp')
-#        tot = pd.concat([tot, g])
-#        
-#tot.to_file(home + '/shapes/lakeCat2.shp')
 ##############################################################################
 
 
@@ -1257,9 +1179,9 @@ def main (nhd, out):
                                             ['AreaSqKM','DrainageID','Shape_Area',
                                              'Shape_Leng','UnitName'], axis=1)
     
-    #NHDtblMerge(nhd, NHDbounds, out)
+    NHDtblMerge(nhd, NHDbounds, out)
     makeBasins(nhd, NHDbounds, out)
-    
+    makeNParrays(out)
 ##############################################################################
 
 
