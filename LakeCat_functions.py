@@ -31,74 +31,7 @@ arcpy.CheckOutExtension("spatial")
 warnings.filterwarnings("ignore", category=FutureWarning)
 Tk().withdraw()
 ##############################################################################
-
-
-#     legacy = 'PROJCS["NAD_1983_Contiguous_USA_Albers",'\
-#                'GEOGCS["GCS_North_American_1983",'\
-#                  'DATUM["D_North_American_1983",'\
-#                    'SPHEROID["GRS_1980",6378137.0,298.257222101]],'\
-#                  'PRIMEM["Greenwich",0.0],'\
-#                  'UNIT["Degree",0.0174532925199433]],'\
-#                'PROJECTION["Albers"],'\
-#                'PARAMETER["false_easting",0.0],'\
-#                'PARAMETER["false_northing",0.0],'\
-#                'PARAMETER["central_meridian",-96.0],'\
-#                'PARAMETER["standard_parallel_1",29.5],'\
-#                'PARAMETER["standard_parallel_2",45.5],'\
-#                'PARAMETER["latitude_of_origin",23.0],'\
-#                'UNIT["Meter",1.0]]'
-#    
-#fiftyseventy = 'PROJCS["NAD83 / Conus Albers",'\
-#                  'GEOGCS["NAD83",'\
-#                    'DATUM["North American Datum 1983",'\
-#                      'SPHEROID["GRS 1980", 6378137.0, 298.257222101, AUTHORITY["EPSG","7019"]],'\
-#                      'TOWGS84[1.0, 1.0, -1.0, 0.0, 0.0, 0.0, 0.0],'\
-#                      'AUTHORITY["EPSG","6269"]],'\
-#                    'PRIMEM["Greenwich", 0.0, AUTHORITY["EPSG","8901"]],'\
-#                    'UNIT["degree", 0.017453292519943295],'\
-#                    'AXIS["Geodetic longitude", EAST],'\
-#                    'AXIS["Geodetic latitude", NORTH],'\
-#                    'AUTHORITY["EPSG","4269"]],'\
-#                  'PROJECTION["Albers Equal Area", AUTHORITY["EPSG","9822"]],'\
-#                  'PARAMETER["central_meridian", -96.0],'\
-#                  'PARAMETER["latitude_of_origin", 23.0],'\
-#                  'PARAMETER["standard_parallel_1", 29.5],'\
-#                  'PARAMETER["false_easting", 0.0],'\
-#                  'PARAMETER["false_northing", 0.0],'\
-#                  'PARAMETER["standard_parallel_2", 45.5],'\
-#                  'UNIT["m", 1.0],'\
-#                  'AXIS["Easting", EAST],'\
-#                  'AXIS["Northing", NORTH],'\
-#                  'AUTHORITY["EPSG","5070"]]'
-#                    
-# 
-#fiftyseventy =  'PROJCS["NAD83 / Conus Albers",'\  DOESN'T WORK
-#                    'GEOGCS["NAD83",'\
-#                        'DATUM["North_American_Datum_1983",'\
-#                            'SPHEROID["GRS 1980",6378137,298.257222101,'\
-#                                'AUTHORITY["EPSG","7019"]],'\
-#                            'TOWGS84[0,0,0,0,0,0,0],'\
-#                            'AUTHORITY["EPSG","6269"]],'\
-#                        'PRIMEM["Greenwich",0,'\
-#                            'AUTHORITY["EPSG","8901"]],'\
-#                        'UNIT["degree",0.0174532925199433,'\
-#                            'AUTHORITY["EPSG","9122"]],'\
-#                        'AUTHORITY["EPSG","4269"]],'\
-#                    'PROJECTION["Albers_Conic_Equal_Area"],'\
-#                    'PARAMETER["standard_parallel_1",29.5],'\
-#                    'PARAMETER["standard_parallel_2",45.5],'\
-#                    'PARAMETER["latitude_of_center",23],'\
-#                    'PARAMETER["longitude_of_center",-96],'\
-#                    'PARAMETER["false_easting",0],'\
-#                    'PARAMETER["false_northing",0],'\
-#                    'UNIT["metre",1,'\
-#                        'AUTHORITY["EPSG","9001"]],'\
-#                    'AXIS["X",EAST],'\
-#                    'AXIS["Y",NORTH],'\
-#                    'AUTHORITY["EPSG","5070"]]'
-                    
-                          
-
+                                        
 fiftyseventy =  'PROJCS["Albers_Conic_Equal_Area",'\
                   'GEOGCS["GCS_GRS_1980_IUGG_1980",'\
                     'DATUM["D_unknown",'\
