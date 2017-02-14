@@ -50,12 +50,91 @@ save.image("C:/Users/mweber/Temp/lakes.RData")
 ```
 
 ## Link with some LakeCat data and make example micromap
+### Watershed Area
+```{r, message=FALSE, error=FALSE}
+load("C:/Users/mweber/Temp/lakes.RData")
+#load("//aa.ad.epa.gov/ord/COR/Users/M-Z/mweber/Net MyDocuments/Publications/Wiley StatRef Article/MicromapExample_wsa.RData")
+kffact = read.csv('L:/Priv/CORFiles/Geospatial_Library/Data/Project/LakeCat/FinalTables/Kffact_Final.csv')
+head(kffact)
+table(kffact$inStreamCat)
+# Just look at non-network lakes
+kffact = kffact[kffact$inStreamCat==0,]
+lakedata = kffact[c(1,3)]
+rm(kffact)
+
+# # Convert to log scale
+lakedata$WsAreaSqKm = log10(lakedata$WsAreaSqKm)
+
+library(micromap)
+# create map table
+wsa.polys <- create_map_table(ageco, 'WSA9_NAME')
+head(wsa.polys)
+#change ID from factor to character
+levels(as.factor(wsa.polys$ID))
+levels(wsa.polys$ID) <- c("Coastal Plains","N. Appalachians","N. Plains","S. Appalachians","S. Plains", 
+                          "T. Plains","Upper Midwest","W. Mountains","Xeric")
+wsa.polys$ID <- as.character(wsa.polys$ID)
+lakedata$WSA_NAME = lakes@data$WSA9_NAME[match(lakedata$COMID, lakes@data$COMID)]
+levels(lakedata$WSA_NAME)
+levels(lakedata$WSA_NAME) <- c("Coastal Plains","N. Appalachians","N. Plains","S. Appalachians","S. Plains", 
+                          "T. Plains","Upper Midwest","W. Mountains","Xeric")
+
+#now summarize data by aggregated ecoregions
+#tip from Mike McManus via QuickR blog  http://statmethods.wordpress.com/
+# define and name the statistics of interest  
+stats <- function(x)(c(N = length(x), Mean = mean(x)))  
+
+statsq <-function(x)(c(N = length(x), Min = min(x), Q1 = quantile(x,c(.25)),
+                       Median = quantile(x,c(.5)), Q3 = quantile(x,c(.75)),
+                       Max = max(x)))
+
+library(reshape)
+lakes.dfm   <- melt(lakedata,  
+                      #outcome variables  
+                      measure.vars = c("WsAreaSqKm"),  
+                      # classification variables  
+                      id.vars = c("WSA_NAME"),  na.rm=TRUE)
+
+
+lakes.dfc <- cast(lakes.dfm, WSA_NAME ~ variable, statsq)
+names(lakes.dfc) <- c("WSA_NAME","WsAreaSqKm_N","WsAreaSqKm_Min","WsAreaSqKm_Q125","WsAreaSqKm_Median50","WsAreaSqKm_Q375","WsAreaSqKm_Max") 
+lakes.dfc$WSA_NAME <- as.character(lakes.dfc$WSA_NAME)
+
+lakes.dfc$points<-0
+
+Wshd_size <- mmplot(stat.data=lakes.dfc, 
+       map.data=wsa.polys,
+       map.all=T,
+       # plot.width=11,
+       panel.types=c('map', 'labels', 'box_summary'),
+       panel.data=list(NA,
+                       "WSA_NAME",
+                       list("WsAreaSqKm_Min","WsAreaSqKm_Q125","WsAreaSqKm_Median50","WsAreaSqKm_Q375","WsAreaSqKm_Max")),
+       ord.by="WsAreaSqKm_Median50", 
+       grouping=3, 
+       median.row=F, 
+       map.link=c("WSA_NAME", 'ID'), 
+       panel.att=list(list(1, header='Light Gray Means\n Highlighted Above'), 
+#                            inactive.border.color=gray(.7), 
+#                            inactive.border.size=2), 
+                      
+                  list(2, header='Aggregated\n Ecoregions', 
+                       align='left', text.size=.6),
+                  
+                  list(3, header='Watershed Area Sq. KM',
+                       graph.bgcolor='lightgray',
+                       graph.bar.size = .6)))
+print(Wshd_size, name='Wshd_size.png',res=1200)
+```
+
 ### Soil Erodibility, Impervious Surfaces, and Road Density for all lakes
 ```{r, message=FALSE, error=FALSE}
 load("C:/Users/mweber/Temp/lakes.RData")
 #load("//aa.ad.epa.gov/ord/COR/Users/M-Z/mweber/Net MyDocuments/Publications/Wiley StatRef Article/MicromapExample_wsa.RData")
 kffact = read.csv('L:/Priv/CORFiles/Geospatial_Library/Data/Project/LakeCat/FinalTables/Kffact_Final.csv')
 head(kffact)
+kffact = kffact[kffact$inStreamCat==0,]
+lakedata = kffact[c(1,3)]
 lakedata = kffact[c(1,10)]
 rm(kffact)
 imp = read.csv('L:/Priv/CORFiles/Geospatial_Library/Data/Project/LakeCat/FinalTables/ImperviousSurfaces2006_Final.csv')
@@ -110,36 +189,37 @@ lakes.dfc$WSA_NAME <- as.character(lakes.dfc$WSA_NAME)
 
 lakes.dfc$points<-0
 
-mmplot(stat.data=lakes.dfc, 
-       map.data=wsa.polys,
-       map.all=T,
-       plot.width=11,
-       panel.types=c('map', 'labels', 'box_summary', 'box_summary', 'box_summary'),
-       panel.data=list(NA,
-                       "WSA_NAME",
-                       list("KffactWs_Min", "KffactWs_Q125", "KffactWs_Median50", "KffactWs_Q375", "KffactWs_Max"),
-                       list("PctImp2006Ws_Min","PctImp2006Ws_Q125","PctImp2006Ws_Median50","PctImp2006Ws_Q375","PctImp2006Ws_Max"),
-                       list("RdDensWs_Min","RdDensWs_Q125","RdDensWs_Median50","RdDensWs_Q375","RdDensWs_Max")),
-       ord.by="KffactWs_Median50", 
-       grouping=3, 
-       median.row=F, 
-       map.link=c("WSA_NAME", 'ID'), 
-       panel.att=list(list(1, header='Light Gray Means\n Highlighted Above'), 
-#                            inactive.border.color=gray(.7), 
-#                            inactive.border.size=2), 
-                      
-                  list(2, header='Aggregated\n Ecoregions', 
-                       align='left', text.size=.6),
-                  
-                  list(3, header='Soil Erodibility',
-                       graph.bgcolor='lightgray',
-                       graph.bar.size = .6),
-                  list(4, header='% Impervious Surfaces',
-                       graph.bgcolor='lightgray',
-                       graph.bar.size = .6),
-                  list(5, header='Road Density',
-                       graph.bgcolor='lightgray',
-                       graph.bar.size = .6)))
+Kffact_Rd_Imp <- mmplot(stat.data=lakes.dfc, 
+                 map.data=wsa.polys,
+                 map.all=T,
+                 plot.width=11,
+                 panel.types=c('map', 'labels', 'box_summary', 'box_summary', 'box_summary'),
+                 panel.data=list(NA,
+                                 "WSA_NAME",
+                                 list("KffactWs_Min", "KffactWs_Q125", "KffactWs_Median50", "KffactWs_Q375", "KffactWs_Max"),
+                                 list("PctImp2006Ws_Min","PctImp2006Ws_Q125","PctImp2006Ws_Median50","PctImp2006Ws_Q375","PctImp2006Ws_Max"),
+                                 list("RdDensWs_Min","RdDensWs_Q125","RdDensWs_Median50","RdDensWs_Q375","RdDensWs_Max")),
+                 ord.by="KffactWs_Median50", 
+                 grouping=3, 
+                 median.row=F, 
+                 map.link=c("WSA_NAME", 'ID'), 
+                 panel.att=list(list(1, header='Light Gray Means\n Highlighted Above'), 
+          #                            inactive.border.color=gray(.7), 
+          #                            inactive.border.size=2), 
+                                
+                            list(2, header='Aggregated\n Ecoregions', 
+                                 align='left', text.size=.6),
+                            
+                            list(3, header='Soil Erodibility',
+                                 graph.bgcolor='lightgray',
+                                 graph.bar.size = .6),
+                            list(4, header='% Impervious Surfaces',
+                                 graph.bgcolor='lightgray',
+                                 graph.bar.size = .6),
+                            list(5, header='Road Density',
+                                 graph.bgcolor='lightgray',
+                                 graph.bar.size = .6)))
+print(Kffact_Rd_Imp, name='Kffact_Rd_Imp.png',res=1200)
 ```
 
 ### Percent Urban, Percent Ag, and Percent Forested for all lakes
@@ -151,6 +231,7 @@ head(nlcd)
 nlcd$PctUrb = nlcd$PctUrbLo2006Ws + nlcd$PctUrbMd2006Ws + nlcd$PctUrbHi2006Ws
 nlcd$PctAg = nlcd$PctCrop2006Ws
 nlcd$PctFor = nlcd$PctDecid2006Ws + nlcd$PctConif2006Ws + nlcd$PctMxFst2006Ws
+nlcd = nlcd[nlcd$inStreamCat==0,]
 lakedata = nlcd[c(1,39:41)]
 
 
@@ -212,7 +293,7 @@ landcov = cbind(landcov, Ag[,3:4])
 levels(as.factor(landcov$UrbCat))
 landcov$UrbCat = factor(landcov$UrbCat, levels=c("Low","Med","High"))
 landcov = landcov[order(landcov$WSA_NAME,landcov$UrbCat),]
-mmgroupedplot(stat.data=landcov,
+NLCD_mmap <- mmgroupedplot(stat.data=landcov,
               map.all=T,
               map.data=wsa.polys,
               panel.types=c("map", "labels", "bar_cl", "bar_cl"),
@@ -237,5 +318,5 @@ mmgroupedplot(stat.data=landcov,
               xaxis.title="percent"),
               list(4, header="Ag", header.size=1,
               xaxis.title="percent")))
-
+print(NLCD_mmap, name='NLCD_mmap.png',res=1200)
 ```
