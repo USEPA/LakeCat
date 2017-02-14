@@ -1,25 +1,25 @@
 # LakeCat
 
-The LakeCat DataSet provides summaries of natural and anthropogenic landscape features for ~377,000 lake watershed basins within the conterminous USA using the [NHDPlus Version 2](http://www.horizon-systems.com/NHDPlus/NHDPlusV2_data.php) as the geospatial framework. 
+The LakeCat DataSet provides summaries of natural and anthropogenic landscape features for ~377,000 lakes and their associated catchments within the conterminous USA using the [NHDPlus Version 2](http://www.horizon-systems.com/NHDPlus/NHDPlusV2_data.php) (NHDPlusV2) as the geospatial framework. 
 
-## On-Network vs. Off-Network
+## Determining On-Network and Off-Network Lakes
 
-To begin, we determine which NHD waterbodies are on the NHD network based on joining the following tables within each hydroregion:
+To begin, we determine which NHD waterbodies are on the NHD network based on joining the following tables within each NHDPlusV2 HydroRegion (see code in *FindIsolatedLakes.py*):
 
   * NHDWaterbodies
   * NHDFlowline
   * Catchment
   * PlusFlowlineVAA
   
-*See the FindIsolatedLakes.py script for methods used*
+Lakes that are associated to flowlines through the 'WBAREACOMID' in the NHDFlowline file can use data directly from StreamCat to represent watershed-level landscape characteristics and are designated as *On_Network* lakes. 
 
-Lakes that are associated to flowlines through the 'WBAREACOMID' in the NHDFlowline file can use the methods from StreamCat to accumulate watershed characteristics. These will be On_Network Lakes. The remaining waterbodies have gone through the off-network process to define watershed characteristics, saved as IsolatedLakes.shp file. 
+The remaining waterbodies are not on the stream network (as depicted with the NHDFlowline file) and are designated as *Off_Network* lakes and saved as *IsolatedLakes.shp*. Watershed characteristics are developed for these lakes using the Off_Network Process (see below).
 
 ## Off_Network Process
 
 ### Step 1 -- Create local basins for each lake
 
-Operating within each raster processing unit (RPU) of the NHDPlus Version 2, all off-network lakes were converted to raster for the creation of basins with the ArcGIS Watershed tool and use the flow direction raster (fdr) . This uses the fdr with our lake raster as pour points to create watershed basin rasters. Each of the basins created are a portion of the NHD catchment which the lake falls in and define the local watershed basin for the lake. 
+Operating within each raster processing unit (RPU) of the NHDPlusV2, all off-network lakes were converted to ESRI shapefiles to rasters (.TIFF format). We then used the ArcGIS Watershed tool and the NHDPlusV2 flow direction raster (named fdr within the NHDPlusV2) to delineate the contributing areas to each lake. This process uses the lake raster as pour points on the fdr raster to create watersheds. Each watershed is a portion of the NHDPlusV2 catchment which the lake falls within and define the local watershed basin for the lake. 
 
 ![Off-Network](https://cloud.githubusercontent.com/assets/7052993/19703884/648f7f0e-9aba-11e6-90e0-e909b49f5de2.PNG)
 
