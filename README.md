@@ -57,6 +57,10 @@ StreamCat tables contain summarizations for individual stream catchments and for
 
 *Shows multiple flowlines and associated catchments to a given waterbody -- highlighted in yellow*
 
+## QA Table from On/Off network selection and basin creation
+
+![qa_tbl](https://cloud.githubusercontent.com/assets/7052993/23385791/29f4fc02-fd07-11e6-9f9a-e0fd8bcdcc1e.PNG)
+
 ## Issues
 
 While creating this dataset, a small number of lakes had to be left out of our processing model due to one of a few reasons.
