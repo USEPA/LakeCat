@@ -105,3 +105,7 @@ off-network problem lakes -- findProblemLakes.py prints out table where an off-n
 
 ## On-Network Lakes left out due to zone '04' exclusion in StreamCat
 
+
+
+# COMID from zone 17 of three lakes that have interesting flow (one<--2-->theOther) && one doesn't flow to the other 2!!
+* 23043937
