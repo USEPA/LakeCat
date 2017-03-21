@@ -113,3 +113,4 @@ off-network problem lakes -- findProblemLakes.py prints out table where an off-n
 # Duplicated in the off-network process or in the NHD:
 * 13871500,  7109029, 18156163, 13118610
 
+# 12 repeated COMIDs in off_networks.shp need to be filtered out!
