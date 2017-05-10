@@ -57,6 +57,10 @@ StreamCat tables contain summarizations for individual stream catchments and for
 
 *Shows multiple flowlines and associated catchments to a given waterbody -- highlighted in yellow*
 
+## QA Table from On/Off network selection and basin creation
+
+![qa_tbl](https://cloud.githubusercontent.com/assets/7052993/23385978/7804e3e8-fd08-11e6-84f2-b5a0f69e3324.PNG)
+
 ## Issues
 
 While creating this dataset, a small number of lakes had to be left out of our processing model due to one of a few reasons.
@@ -100,4 +104,16 @@ off-network problem lakes -- findProblemLakes.py prints out table where an off-n
 * 
 
 ## On-Network Lakes left out due to zone '04' exclusion in StreamCat
+
+
+
+# COMID from zone 17 of three lakes that have interesting flow (one<--2-->theOther) && one doesn't flow to the other 2!!
+* 23043937
+
+# Duplicated in the off-network process or in the NHD:
+* 13871500,  7109029, 18156163, 13118610
+
+# 12 repeated COMIDs in off_networks.shp need to be filtered out!
+
+* out of bounds but duplicated between the 2 zones! fixed with drop_duplicates!
 
