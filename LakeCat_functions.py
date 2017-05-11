@@ -997,8 +997,10 @@ def makeBasins (nhd, bounds, out):
             shpOut = "%s/shps/wtshds_%s.shp"%(out,rpu)
             r2p("%s/rasters/wtshds_%s.tif"%(out,rpu),shpOut,"NO_SIMPLIFY","VALUE")
             bsnShps = gpd.read_file(shpOut)
-            bsnShps['COMID'] = bsnShps.GRIDCODE
-            bsnShps.set_index('GRIDCODE', inplace=True)
+            bsnShps.rename(columns={'GRIDCODE':'COMID'},inplace=True)
+            ref = bsnShps.crs
+            bsnShps = bsnShps.dissolve(by='COMID') # old version on gpd loses CRS in dissolve
+            bsnShps.crs = ref
             bsnShps['AreaSqKM'] = bsnShps['geometry'].area/ 10**6
             allBsns = pd.concat([allBsns,bsnShps])
     
