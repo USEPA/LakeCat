@@ -170,3 +170,4 @@ for it in tit.COMID.values:
         out = pd.concat([final, onNet])
         out.to_csv('%s/%s.csv' % (out_dir, name), index=False)
         print 'Accumulation Results Complete in : ' + str(dt.now() - start2)
+
