@@ -1,0 +1,36 @@
+---
+title: "LakeCat Development Process"
+author: "Rick Debbout"
+date: "Tuesday, July 07, 2015"
+output: html_document
+---
+
+This page describes the process of creating watershed characteristics for each NHDPlusV2 Waterbody which is attributed an 'FTYPE' of 'LakePond or 'Reservoir'. Throughout the conterminous US there exist 379,095 such features, many of which can be referenced through NHD Flowlines which will allow for processing of landscape layers as was accomplished in the StreamCat Dataset. These waterbodies we refer to as 'on-network' while the remaining are 'off-network'. Below is a table describing the number of on/off-network waterbodies and further documentation as to how each was processed for each hydro region of the NHDPlusV2.
+
+![Flowchart](D:\\Projects\\lakesAnalysis\\pics\\LakeTotals.PNG)\
+*-**'Removed'** describes the number of waterbodies that exist outside of the extent of the flow direction rasters and cannot be used in this analysis*
+
+
+## On-Network Waterbody Selection
+On-Network waterbodies are referenced to an existing catchment which can be used to accumulate a watershed for the waterbody as is performed in the StreamCat Dataset. Four NHDPlus V2 tables need to be joined to find the catchment. Lines connecting tables identify the join key.
+ ![Flowchart](D:\\Projects\\lakesAnalysis\\pics\\NHDWaterbodyTableFlow.PNG)\
+
+There can be many flowlines associated with a single waterbody.  First, we select the flowline COMIDs that have an associated catchment COMID. Then, the lowest 'HYDROSEQ' value will give the flowline COMID with an associated catchment COMID. A list of these COMIDs is appended to use in the SelectLayerByAttribute funtion in the arcpy module. See the [script](ftp://newftp.epa.gov/EPADataCommons/ORD/NHDPlusLandscapeAttributes/StreamCat/Documentation/Code/StandardizeLandscapeFeatures.py) for further analysis. 
+
+
+## Off-Network Waterbody Process
+
+After saving the selected features of on-network waterbodies, we use the 'SWITCH_SELECTION' argument in arcpy to establish the waterbodies that are off-network.  The [LakesBasinDelin](ftp://newftp.epa.gov/EPADataCommons/ORD/NHDPlusLandscapeAttributes/StreamCat/Documentation/Code/StandardizeLandscapeFeatures.py) script selects the waterbodies of each hydro region, converts them to a raster, and runs the watershed tool with the flow direction raster from each associated raster processing unit to produce an individual, local level catchment for each lake.  In the above table, the column labelled 'Removed' describes the number of waterbodies that exist outside of the extent of the flow direction rasters and cannot be used in this analysis.
+In order to acumulate the catchments off-network lakes, the [LakesConnect](ftp://newftp.epa.gov/EPADataCommons/ORD/NHDPlusLandscapeAttributes/StreamCat/Documentation/Code/StandardizeLandscapeFeatures.py) script uses the Shift tool to determine catchments that flow in to others and creates a 'From_To' table identifying the catchment COMIDs which imitates the NHDPlusV2 PlusFlow table for use in the [CatchmentAccumulation](ftp://newftp.epa.gov/EPADataCommons/ORD/NHDPlusLandscapeAttributes/StreamCat/Documentation/Code/StandardizeLandscapeFeatures.py) script.
+
+
+
+Few off-network lakes were not analyzed in this process for the following reasons: 
+
+1). The NHD Waterbody size was too small to be captured inside of the snapgrid that we used.  If no part of the polygon intersected with the center of a cell from the snap grid, it was not translated into the raster of lakes that was made for building watersheds from the PolygonToRaster tool.There are eleven of these across all off-network lakes and the image below shows how the polygon doesn't intersect with the center of the cell of the snapgrid.
+
+![The lines show the outline of the snapgrid cells.](D:\\Projects\\lakesAnalysis\\pics\\VPU-09__22323839.PNG)\
+
+2). The NHD Waterbody is overlapped by another NHD Waterbody and only one of the NHD Waterbodies could be brought into the off-network lakes raster.  These are discrepancies of the NHD. There are 8 instances of this occurring and a table below will show the related Waterbody COMID that can be used in analysis for these particular waterbodies along with an image showing two waterbodies overlapping.
+
+![](D:\\Projects\\lakesAnalysis\\pics\\VPU-16__19861298.PNG)\
