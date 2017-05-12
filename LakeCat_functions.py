@@ -884,7 +884,7 @@ def NHDtblMerge(nhd, bounds, out):
                                                 'UnitID','geometry']]
         # hold lakes that aren't within the VPU boundary
         out_of_bounds = offLks.ix[~offLks.COMID.isin(lkVPUjoin.COMID)].copy()
-        out_of_bounds['VPU_orig'] = zone
+        out_of_bounds['VPU_orig'] = zone # identify the zone it came from
         # find the correct vpu for those out-of-bounds
         outCen = offCen.ix[~offCen.COMID.isin(lkVPUjoin.COMID)]
         unit = sjoin(outCen, vpus, op='within')[['COMID','UnitID']]
@@ -956,7 +956,9 @@ def makeBasins (nhd, bounds, out):
         # get the lakes that were out-of-bounds into the correct vpu
         addLks = Obounds.ix[Obounds.UnitID == zone].copy()
         offLks = gpd.read_file("%s/off_net_%s.shp" % (out, zone))
-        # add back-in lakes that are in other zones 
+        # remove duplicated lakes across zones        
+        addLks.drop(addLks.loc[addLks.COMID.isin(offLks.COMID)].index,inplace=True)            
+        # add back-in lakes that are in other zones
         offLks = pd.concat([offLks,addLks]).reset_index(drop=True)
 
         assert offLks.crs == {'init': u'epsg:4269'}
