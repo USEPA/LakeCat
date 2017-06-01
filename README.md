@@ -139,3 +139,20 @@ COMID |	VPU |	REASON FOR OMISSION
 14725382	|04|	OVERLAPPED BY COMID 166766632
 20166532	|03N|	DOESN'T HIT CELL CENTER
 120054030	|18|	OVERLAPPED BY COMID 120053926
+
+# working info...
+* old process output 377347 COMIDs
+* new process output 378090 COMIDs
+* difference of 743 lakes
+
+#### don't think it's necessary to hold on to CatAreaSqKm in join_tables, it's not the accumulated version for lakes that are covered by more than one catchment
+
+#### join_tables can be merged with the GeoDF for off-net lakes
+
+
+missing in new...
+7887298
+11974699
+
+#### Another check to make later might be to create watersheds for the off_network lakes and see if there is an intersection with an on-network lakes, then see what those accumulate
+
