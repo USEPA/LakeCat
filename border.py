@@ -2,6 +2,10 @@
 """
 Created on Tue May 30 14:05:09 2017
 
+Make the PctFull for Point landscape layers. Finds what percentage of zones
+exist inside the CONUS border. Isolates polys that cross the border and then
+performs area calculations and returns the proportion of each zone.
+
 @author: Rdebbout
 """
 
@@ -53,10 +57,9 @@ def brdrPctFull(zns, brdr, ncol, acol='AreaSqKM'):
     '''
     Arguments
     ---------
-    zns     : geoDF of basin polygons
+    zns      : geoDF of basin polygons
     brdr     : geoDF of CONUS polygon
     ncol     : name of the column that uniquely identifies zns polygons    
-    lkCat    : bool to allow for the rturn of UID w/ LakeCat output
     acol     : name of column that holds area (sq. KM)
     '''
     # move poly to albers, need to stay in this CRS to cal. area later
@@ -108,51 +111,8 @@ if __name__ == '__main__':
     lake_basins = 'D:/Projects/LakeCat_Framework/shps/allBasins.shp'
     
     nhd = 'D:/NHDPlusV21'
-    csv = makeBrdrPctFile(us_file, lake_basins, 'NAME10', 'UID')
+    # LakeCat
+    #csv = makeBrdrPctFile(us_file, lake_basins, 'NAME10', 'UID')
+    # StreamCat
+    csv = makeBrdrPctFile(us_file, nhd, 'NAME10', 'FEATUREID') 
     csv.to_csv('D:/Projects/LakeCat/Framework/border/new2.csv')
-    
-#z_file = 'D:/Projects/LakeCat_Framework/shps/allBasins.shp'
-#ff.to_csv('L:/Priv/CORFiles/Geospatial_Library/Data/Project/StreamCat/ControlTables/ALL_BORDER_CATS.csv')
-#
-#out.to_csv('D:/Projects/LakeCat/Framework/border/new.csv')
-
-# Downloaded from https://www.census.gov/cgi-bin/geo/shapefiles/index.php?year=2016&layergroup=States+%28and+equivalent%29
-# 'D:/Projects/LakeCat/Framework/border/tl_2016_us_state.shp'
-
-################################################################
-
-# old method, uses overlay on entire GeoDF instead of iterating rows
-
-#def brdrPctFull(zns, brdr, ncol, lkCat=False, acol='AreaSqKM'):
-#    '''
-#    Arguments
-#    ---------
-#    zns     : geoDF of basin polygons
-#    brdr     : geoDF of CONUS polygon
-#    ncol     : name of the column that uniquely identifies zns polygons    
-#    lkCat    : bool to allow for the rturn of UID w/ LakeCat output
-#    acol     : name of column that holds area (sq. KM)
-#    '''
-#    # move poly to albers, need to stay in this CRS to cal. area later
-#    if brdr.crs != zns.crs:
-#        brdr.to_crs(zns.crs,inplace=True)
-#    tch = sjoin(zns,brdr,op='within')
-#    print 'sjoin done!!'
-#    nwin = zns.ix[~zns[ncol].isin(tch[ncol])].copy()
-#    if len(nwin) == 0:
-#        return pd.DataFrame()
-#    clipd = gpd.overlay(brdr, nwin, how='intersection')
-#    print 'overlay done!'
-#    out = clipd.dissolve(by=ncol)
-#    out['Area_CONUS'] = out.geometry.area * 1e-6    
-#    out['PctFull'] = (out['Area_CONUS'] / out[acol]) * 100
-#    if lkCat == True:
-#        out = out[['UID','PctFull']]
-#    else:
-#        out = out[['PctFull']] 
-#    if not len(out) == len(nwin):
-#        nwin['PctFull'] = 0
-#        nwin = nwin.ix[~nwin[ncol].isin(out.index)]
-#        app = nwin[[ncol] + out.columns.tolist()].set_index(ncol)
-#        out = pd.concat([out,app])
-#    return out
