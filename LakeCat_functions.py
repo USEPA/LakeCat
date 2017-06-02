@@ -1158,9 +1158,9 @@ def main (nhd, out):
                                              'Shape_Leng','UnitName'], axis=1)
     if not os.path.exists("%s/Lake_QA.csv" % out):
         NHDtblMerge(nhd, NHDbounds, out)
-#    makeBasins(nhd, NHDbounds, out)
-#    #makeFlowTbl(nhd, out) # happens in makeBasins now...
-#    makeNParrays(out)
+    makeBasins(nhd, NHDbounds, out)
+    #makeFlowTbl(nhd, out) # happens in makeBasins now...
+    makeNParrays(out)
 ##############################################################################
 
 
