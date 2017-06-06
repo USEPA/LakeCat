@@ -254,8 +254,10 @@ def Accumulation(arr, COMIDs, lengths, upStream, tbl_type, icol):
     outDF = pd.DataFrame(outT)
     if tbl_type == 'Ws':
         outDF.columns = np.append(icol, map(lambda x : x.replace('Cat', 'Ws'),cols.values))
-    if tbl_type == 'UpCat':
+    elif tbl_type == 'UpCat':
         outDF.columns = np.append(icol, 'Up' + cols.values)
+    else:
+        outDF.columns = [icol] + cols.tolist()
     for name in outDF.columns:
         if 'AreaSqKm' in name:
             areaName = name
@@ -477,11 +479,11 @@ def getOnNetLakes2(metric, StreamCat, LakeComs, npy_files, nhd):
 #            strmCat = strmCat.drop([x for x in strmCat.columns if 'MAX' in x or 'MIN' in x], axis=1)
         cols = [col for col in strmCat.columns if col[:3] =='Cat']
         iso = strmCat[['COMID'] + cols]        
-        accum = np.load(r'D:\Projects\Frmwkx\OnNet_LakeCat.npz')['accum'].item()[zone]        
+        accum = np.load(npy_files)['vpus'].item()[zone]        
         accumCats = Accumulation(iso, accum['comids'], 
                                 accum['lengths'], 
                                 accum['upstream'], 
-                                '', 'COMID') 
+                                '', 'COMID')
 #        # shouldn't be needed if keep tbl_type arg as empty string in Accumulation
 #        accumCats.columns = [col.replace('Ws','Cat') for col in accumCats.columns]        
         upWs = strmCat.ix[strmCat.COMID.isin(tbl.catCOMID)].drop(cols, axis=1)       
@@ -843,7 +845,8 @@ def NHDtblMerge(nhd, bounds, out):
                 catDict[int(base.COMID_cat)] = group.FEATUREID.astype(int).tolist()
         # hold length of on-net lakes
         ttl_ON = len(onNetDF)
-        # add in related sinks
+        # add in related sinks -- this could be done in tables and found in 
+        # groupby object above, but this allows for isolation of number added
         sinks = gpd.read_file("%s/NHDPlusBurnComponents/Sink.shp"%(pre))   
         exp = '(SOURCEFC== "NHDWaterbody")&(PURPDESC== "NHDWaterbody closed lake")'
         if len(sinks) > 0:
@@ -1072,9 +1075,8 @@ def makeBasins (nhd, bounds, out):
     qa_tbl = pd.read_csv("%s/Lake_QA.csv" % out)
     qa_tbl = pd.merge(qa_tbl, addOut, on='VPU')
     qa_tbl.to_csv("%s/Lake_QA.csv" % out, index=False)
-    purge(out, "off_net_")  # delete the individual zone files
     allBsns.to_file("%s/shps/allBasins.shp" % out)
-
+    purge(out, "off_net_")  # delete the individual zone files
 ##############################################################################
 
 
@@ -1177,7 +1179,14 @@ if __name__=='__main__':
     main(nhd_dir, out_dir)
     
 ##############################################################################
-
+def onNetZone(x, here=r'D:\Projects\LKCAT_frame\joinTables'):
+    for f in os.listdir(here):
+        print f
+        tbl = pd.read_csv('%s/%s' % (here,f))
+        if x in tbl.wbCOMID.values:
+            print f.split('.')[0].split('_')[-1]
+            print tbl.ix[tbl.wbCOMID == x]
+            
 # Unused functions, but would be useful for creating flexibility w/ new datasets
 
 #def makeVPUdict(directory):

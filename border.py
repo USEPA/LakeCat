@@ -9,6 +9,7 @@ performs area calculations and returns the proportion of each zone.
 @author: Rdebbout
 """
 
+import os
 import pandas as pd
 import geopandas as gpd
 from geopandas.tools import sjoin
@@ -77,20 +78,20 @@ def brdrPctFull(zns, brdr, ncol, acol='AreaSqKM'):
                           crs=nwin.crs)
         clip = gpd.overlay(brdr, p, how='intersection')
         if len(clip) == 0:
-            p['PctFull'] = 0
-            tot = pd.concat([tot,p.set_index(ncol)[['PctFull']]])
+            p['CatPctFull'] = 0
+            tot = pd.concat([tot,p.set_index(ncol)[['CatPctFull']]])
         else:
             out = clip.dissolve(by=ncol)
             out['Area_CONUS'] = out.geometry.area * 1e-6    
-            out['PctFull'] = (out['Area_CONUS'] / out[acol]) * 100
-            tot = pd.concat([tot,out[['PctFull']]])
+            out['CatPctFull'] = (out['Area_CONUS'] / out[acol]) * 100
+            tot = pd.concat([tot,out[['CatPctFull']]])
     assert len(tot) == len(nwin)
     return tot
 
 def makeBrdrPctFile(b_file, z_file, b_field, z_field):
     states = dissolveStates(b_file, b_field)
     if z_file[-4:] == '.shp':
-        cats = gpd.read_file('D:/Projects/LakeCat_Framework/shps/allBasins.shp')
+        cats = gpd.read_file(z_file)
         final = brdrPctFull(cats,states,'UID')
     else:
         final = pd.DataFrame()
@@ -108,11 +109,13 @@ def makeBrdrPctFile(b_file, z_file, b_field, z_field):
 if __name__ == '__main__':
     
     us_file = 'L:/Priv/CORFiles/Geospatial_Library/Data/RESOURCE/POLITICAL/BOUNDARIES/NATIONAL/TIGER_2010_State_Boundaries.shp'
-    lake_basins = 'D:/Projects/LakeCat_Framework/shps/allBasins.shp'
-    
+    lake_basins = 'D:/Projects/LKCAT_frame/shps/allBasins.shp'
+    here = 'D:/Projects/LKCAT_frame/border'
+    if not os.path.exists(here):
+        os.mkdir(here)
     nhd = 'D:/NHDPlusV21'
     # LakeCat
-    #csv = makeBrdrPctFile(us_file, lake_basins, 'NAME10', 'UID')
+    csv = makeBrdrPctFile(us_file, lake_basins, 'NAME10', 'UID')
     # StreamCat
-    csv = makeBrdrPctFile(us_file, nhd, 'NAME10', 'FEATUREID') 
-    csv.to_csv('D:/Projects/LakeCat/Framework/border/new2.csv')
+#    csv = makeBrdrPctFile(us_file, nhd, 'NAME10', 'FEATUREID') 
+    csv.to_csv('%s/pct_full.csv' % here)
