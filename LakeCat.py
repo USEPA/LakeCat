@@ -107,7 +107,7 @@ for ll in lls:  # loop through each FullTableName in control table
         
     if accum_type == 'Continuous':
         stats = pd.merge(b, stats, how='left', on='UID')
-        stats['CatPctFull'] = ((stats.COUNT_x / stats.COUNT_y) * 100)
+        stats['CatPctFull'] = ((stats.COUNT_y / stats.COUNT_x) * 100)
         if name == 'Elev':
             stats = stats[['UID','AreaSqKm','COUNT_x','SUM', 
                            'MAX', 'MIN', 'CatPctFull']]
@@ -143,7 +143,7 @@ for ll in lls:  # loop through each FullTableName in control table
         off.columns = [col.replace('M3','') for col in off.columns]
     on = getOnNetLakes2(name, StreamCat, 
                            '%s/joinTables' % frame , 
-                           '%s/onNet_LakeCat.npz' % frame, 
+                           '%s/onNet_LakeCat.npz' % npy, 
                            NHD_dir)
     on['inStreamCat'] = 1
     print "Length of on_Net: " + str(len(on))

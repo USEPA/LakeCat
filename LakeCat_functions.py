@@ -917,7 +917,7 @@ def NHDtblMerge(nhd, bounds, out):
     # 02/04 : coms 15516920, 15516922 NHD Problem.....again
     Obounds = Obounds.ix[~Obounds.COMID.isin(ons)] 
     Obounds.to_file("%s/out_of_bounds.shp" % out)
-    np.savez_compressed('%s/onNet_LakeCat.npz' % (out), 
+    np.savez_compressed('%s/LakeCat_npy/onNet_LakeCat.npz' % (out), 
                         vpus=onNet_connect)
     qa_tbl.index = qa_cols
     qa_tbl.T.index.rename('VPU', inplace=True)
@@ -973,6 +973,7 @@ def makeBasins (nhd, bounds, out):
         offLks.rename(columns={'UnitID':'VPU_moved'}, inplace=True)
 
         ttl_LOST = 0
+        cat = gpd.read_file('%s/NHDPlusCatchment/Catchment.shp'%(pre))
         for rpu in rpus[zone]:
             lakes = offLks.copy()
             if len(rpus[zone]) > 1:
@@ -984,7 +985,6 @@ def makeBasins (nhd, bounds, out):
                 lakes.rename(columns={'UnitID': 'RPU'}, inplace=True)
             if len(rpus[zone]) == 1:
                 lakes['RPU'] = rpu
-            
             lakes.drop_duplicates('COMID', inplace=True) # filter out duplicated
             ln = len(lakes)
             lakes['UID'] = range(uid,uid+ln)
@@ -1020,8 +1020,7 @@ def makeBasins (nhd, bounds, out):
             bsnShps = bsnShps.merge(lakes[['COMID','UID']],on='UID')
             bsnShps = bsnShps[['COMID','UID','BSN_COUNT','AreaSqKM','RPU','geometry']]
             bsnShps.to_file(shpOut)
-            allBsns = pd.concat([allBsns,bsnShps])
-            
+            allBsns = pd.concat([allBsns,bsnShps])            
             # hold VALUE/COUNT in csv for processing
             #countTbl = pd.concat([countTbl,rat])
             # find number of lakes that don't get represented in raster, size/duplicated
@@ -1032,19 +1031,18 @@ def makeBasins (nhd, bounds, out):
             centroids = lakes.to_crs({'init': u'epsg:4269'}).copy().drop(
                                                             'AREASQKM',axis=1)
             centroids.geometry = centroids.centroid
-            cat = gpd.read_file('%s/NHDPlusCatchment/Catchment.shp'%(pre))
+            if 12691112 in centroids.COMID.values:
+                print centroids.ix[centroids.COMID == 12691112].geometry
             lkCat = sjoin(centroids, cat, op='intersects', how='left')
-            lkCat.columns = lkCat.columns.str.upper()
-            
+            lkCat.columns = lkCat.columns.str.upper()           
             # add assoc. cats and areas to off-net lakes ----------------------
             lakes = lakes.to_crs({'init': u'epsg:4269'}).copy()
             lakes = lakes.merge(lkCat[['COMID','FEATUREID','AREASQKM']].rename(
                                 columns={'FEATUREID':'catCOMID',
                                          'AREASQKM':'catAREASQKM'}), 
                                 on='COMID')
-
-            allOff = pd.concat([allOff,lakes.copy()])
-            
+            # may be a problem coming out of the spatial join above w/ assoc. cat
+            allOff = pd.concat([allOff,lakes.copy()])           
             # compare basin sizes ---------------------------------------------
             both = pd.merge(lkCat[['COMID','UID','FEATUREID','AREASQKM']], rat,
                             how='inner', on='UID')
@@ -1052,19 +1050,19 @@ def makeBasins (nhd, bounds, out):
             bigs = both.ix[both.AREASQKM < both.AreaSqKM_basin].copy()
             bigs['diff'] = abs(bigs.AREASQKM - bigs.AreaSqKM_basin)
             bigs['VPU'] = zone
-            bigs['RPU'] = rpu
-            
+            bigs['RPU'] = rpu            
             problems = pd.concat([problems,bigs], ignore_index=True)  # pd.DF
             flow_rpu = findFlows("%s/rasters/wsheds/wtshds_%s.tif"%(out,rpu), 
                                  "%s/NHDPlusFdrFac%s/fdr" % (pre, rpu))
             flow_rpu['RPU'] = rpu        
             flow_tbl = pd.concat([flow_tbl, flow_rpu])  # pd.DF
+        # add the number of COMIDs that get lost in raster creation i.e. too small/overlap
         row = pd.Series([zone, ttl_LOST], index=cols)
         addOut = addOut.append(row, ignore_index=True)
     # write-out lakes that have a larger watershed 
     # than their containing catchment
     #countTbl.to_csv("%s/LakeCat_RasterCounts.csv" % out,index=False) # this can be merged w/ allBasin.shp file
-    flow_tbl.to_csv("%s/LakeCat_PlusFlow.csv" % out,index=False)
+    flow_tbl.to_csv("%s/LakeCat_npy/LakeCat_PlusFlow.csv" % out,index=False)
     problems.to_csv("%s/rasters/problems.csv" % out,index=False)
     allOff.to_crs(offLks.crs,inplace=True)
     allOff.to_file("%s/off-network.shp" % out)
@@ -1077,24 +1075,6 @@ def makeBasins (nhd, bounds, out):
     qa_tbl.to_csv("%s/Lake_QA.csv" % out, index=False)
     allBsns.to_file("%s/shps/allBasins.shp" % out)
     purge(out, "off_net_")  # delete the individual zone files
-##############################################################################
-
-
-def makeFlowTbl(nhd, out):
-
-    flow_tbl = pd.DataFrame()
-    for zone in inputs:        
-        hr = inputs[zone]
-        pre = "%s/NHDPlus%s/NHDPlus%s" % (nhd, hr, zone)
-        for rpu in rpus[zone]:
-            print rpu
-            flow_rpu = findFlows("%s/rasters/wsheds/wtshds_%s.tif"%(out,rpu), 
-                                 "%s/NHDPlusFdrFac%s/fdr" % (pre, rpu))
-            flow_rpu['RPU'] = rpu        
-            flow_tbl = pd.concat([flow_tbl, flow_rpu]) 
-            flow_rpu.to_csv("%s/tbls/PlusFlow_%s.csv" % (out,rpu),index=False)
-    flow_tbl.to_csv("%s/LakeCat_PlusFlow.csv" % out,index=False)
-
 ##############################################################################
 
 
@@ -1122,8 +1102,6 @@ def makeNParrays(loc):
     tbl = dbf2DF('%s/off-network.dbf' % loc)
     coms = tbl.UID.values
     d = '%s/LakeCat_npy' % loc
-    if not os.path.exists(d):
-        os.mkdir(d)
     if not os.path.exists(d + '/bastards'):
         os.mkdir(d + '/bastards')
         os.mkdir(d + '/children')     
@@ -1152,6 +1130,7 @@ def main (nhd, out):
         os.mkdir("%s/rasters/wsheds" % out)
         os.mkdir("%s/shps" % out)
         os.mkdir("%s/joinTables" % out)
+        os.mkdir("%s/LakeCat_npy" % out)
     
     
     NHDbounds = gpd.read_file(
@@ -1161,8 +1140,7 @@ def main (nhd, out):
     if not os.path.exists("%s/Lake_QA.csv" % out):
         NHDtblMerge(nhd, NHDbounds, out)
     makeBasins(nhd, NHDbounds, out)
-    #makeFlowTbl(nhd, out) # happens in makeBasins now...
-    makeNParrays(out)
+    makeNParrays('%s/LakeCat_npy' % out)
 ##############################################################################
 
 
