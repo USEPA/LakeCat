@@ -689,7 +689,7 @@ def rollArray(a, d):
     
 
 def makeFlows(arr, shiftd, fdr, path, nd):
-    iso = np.not_equal(arr, shiftd) * np.not_equal(shiftd, nd)  # cells change value after shift * cells not equal to NoData
+    iso = np.not_equal(arr, shiftd) * np.not_equal(shiftd, nd) * np.not_equal(arr, nd)  # cells change value after shift * cells not equal to NoData
     pth = np.equal(fdr,path)  # True when equal to path value
     val = iso * pth * arr 
     shiftval = iso * pth * shiftd
@@ -997,7 +997,7 @@ def makeBasins (nhd, bounds, out):
                 "%s/rasters/lakes/lakes_%s.tif" % (out, rpu),"CELL_CENTER",'',30)
             purge('%s/rasters/lakes/scratchArc' % out, 'rasPrep_%s' % rpu)
             
-            outWshed = Watershed("%s/NHDPlusFdrFac%s/fdr" % (pre, rpu),
+            outWshed = Watershed("%s/NHDPlusFdrNull%s/fdrnull" % (pre, rpu),
                                  "%s/rasters/lakes/lakes_%s.tif" % (out, rpu),
                                   "VALUE")
             outWshed.save("%s/rasters/wsheds/wtshds_%s.tif" % (out,rpu))
