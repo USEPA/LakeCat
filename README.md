@@ -1,6 +1,6 @@
 # LakeCat
 
-The LakeCat DataSet provides summaries of natural and anthropogenic landscape features for ~377,000 lakes and their associated catchments within the conterminous USA using the [NHDPlus Version 2](http://www.horizon-systems.com/NHDPlus/NHDPlusV2_data.php) (NHDPlusV2) as the geospatial framework. 
+The LakeCat DataSet provides summaries of natural and anthropogenic landscape features for ~378,000 lakes and their associated catchments within the conterminous USA using the [NHDPlus Version 2](http://www.horizon-systems.com/NHDPlus/NHDPlusV2_data.php) (NHDPlusV2) as the geospatial framework. 
 
 ## Determining On-Network and Off-Network Lakes
 
@@ -57,6 +57,10 @@ StreamCat tables contain summarizations for individual stream catchments and for
 
 *Shows multiple flowlines and associated catchments to a given waterbody -- highlighted in yellow*
 
+## QA Table from On/Off network selection and basin creation
+
+![qa_tbl](https://cloud.githubusercontent.com/assets/7052993/23385978/7804e3e8-fd08-11e6-84f2-b5a0f69e3324.PNG)
+
 ## Issues
 
 While creating this dataset, a small number of lakes had to be left out of our processing model due to one of a few reasons.
@@ -100,4 +104,55 @@ off-network problem lakes -- findProblemLakes.py prints out table where an off-n
 * 
 
 ## On-Network Lakes left out due to zone '04' exclusion in StreamCat
+
+
+
+# COMID from zone 17 of three lakes that have interesting flow (one<--2-->theOther) && one doesn't flow to the other 2!!
+* 23043937
+
+# Duplicated in the off-network process or in the NHD:
+* 13871500,  7109029, 18156163, 13118610
+
+# 12 repeated COMIDs in off_networks.shp need to be filtered out!
+
+* out of bounds but duplicated between the 2 zones! fixed with drop_duplicates!
+
+
+## <font color='red'>Omitted NHDPlusV21 waterbody COMIDs</font>
+COMID |	VPU |	REASON FOR OMISSION
+:------|:---:|--------------------:		
+14300071	|10U|	OVERLAPPED BY COMID 12568346
+12967474	|10U|	DOESN'T HIT CELL CENTER
+120052923	|10U|	OVERLAPPED BY COMID 120051949
+167245973	|10L|	OVERLAPPED BY COMID 120053749
+14819137	|07|	DOESN'T HIT CELL CENTER
+14820667	|07|	DOESN'T HIT CELL CENTER
+944040052	|14|	DOESN'T HIT CELL CENTER
+23854057	|17|	DOESN'T HIT CELL CENTER
+24052877	|17|	OVERLAPPED BY COMID 20315924
+120054048	|16|	OVERLAPPED BY COMID 120053946
+19861298	|16|	OVERLAPPED BY COMID 24989585
+162424445	|15|	OVERLAPPED BY COMID 120053954
+22323839	|09|	DOESN'T HIT CELL CENTER
+15235574	|08|	DOESN'T HIT CELL CENTER
+22700864	|08|	DOESN'T HIT CELL CENTER
+14725382	|04|	OVERLAPPED BY COMID 166766632
+20166532	|03N|	DOESN'T HIT CELL CENTER
+120054030	|18|	OVERLAPPED BY COMID 120053926
+
+# working info...
+* old process output 377347 COMIDs
+* new process output 378090 COMIDs
+* difference of 743 lakes
+
+#### don't think it's necessary to hold on to CatAreaSqKm in join_tables, it's not the accumulated version for lakes that are covered by more than one catchment
+
+#### join_tables can be merged with the GeoDF for off-net lakes
+
+
+missing in new...
+7887298
+11974699
+
+#### Another check to make later might be to create watersheds for the off_network lakes and see if there is an intersection with an on-network lakes, then see what those accumulate
 
