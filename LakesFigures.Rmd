@@ -1,0 +1,105 @@
+---
+title: "LakeCatFigures"
+author: "Marc Weber"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document:
+    theme: yeti
+    highlighted: default 
+    toc: yes
+---
+
+### Try out some other ideas for figures for LakeCat - looking just at lakes not in StreamCat (i.e. not reservoirs or lakes on streamlines)
+```{r, message=FALSE, error=FALSE, warning=FALSE}
+library(ggplot2)
+load("H:/WorkingData/lakes.RData")
+levels(lakes$WSA9_NAME)[6] <- 'Temperate Plains'
+nlcd = read.csv('L:/Priv/CORFiles/Geospatial_Library/Data/Project/LakeCat/FTP_Staging/LakeCat/FinalTables/NLCD2006_Final.csv')
+# head(nlcd)
+nlcd$PctUrb = nlcd$PctUrbLo2006Ws + nlcd$PctUrbMd2006Ws + nlcd$PctUrbHi2006Ws
+nlcd$PctAg = nlcd$PctCrop2006Ws
+nlcd$PctFor = nlcd$PctDecid2006Ws + nlcd$PctConif2006Ws + nlcd$PctMxFst2006Ws
+nlcd = nlcd[nlcd$inStreamCat==0,]
+lakedata = nlcd[c(1,3,39:41)]
+lakedata$WsAreaBin <- cut(lakedata$WsAreaSqKm, quantile(lakedata$WsAreaSqKm), include.lowest=TRUE)
+levels(lakedata$WsAreaBin) <- list('<25th'=c("[0.0009,0.151]"), '50-75th'=c("(0.151,0.416]", "(0.416,1.29]"), '>75th' = c("(1.29,6.02e+03]"))
+lakedata$WSA_NAME = lakes@data$WSA9_NAME[match(lakedata$COMID, lakes@data$COMID)]
+f <- function(x) {
+  r <- quantile(x, probs = c(0.10, 0.25, 0.5, 0.75, 0.90))
+  names(r) <- c("ymin", "lower", "middle", "upper", "ymax")
+  r
+}
+
+p <- ggplot(lakedata, aes(WsAreaBin,PctAg))
+p + stat_summary(fun.data = f, geom="boxplot") + facet_wrap(~ WSA_NAME, ncol=2) +
+  labs(x = 'Watershed Size Classes', y = 'Percent Agriculture') + ggtitle('Lake Basin % Agriculture by Size Class of Lake Basin')
+
+p <- ggplot(lakedata, aes(WsAreaBin,PctUrb))
+p + stat_summary(fun.data = f, geom="boxplot") + facet_wrap(~ WSA_NAME, ncol=2) +
+  labs(x = 'Watershed Size Classes', y = 'Percent Urban (log10)') + ggtitle('Lake Basin % Urban by Size Class of Lake Basin') + scale_y_log10()
+
+p <- ggplot(lakedata, aes(WsAreaBin,PctFor))
+p + stat_summary(fun.data = f, geom="boxplot") + facet_wrap(~ WSA_NAME, ncol=2) +
+  labs(x = 'Watershed Size Classes', y = 'Percent Forested') + ggtitle('Lake Basin % Forested by Size Class of Lake Basin')
+
+kfact = read.csv('L:/Priv/CORFiles/Geospatial_Library/Data/Project/LakeCat/FTP_Staging/LakeCat/FinalTables/Kffact_Final.csv')
+kfact = kfact[kfact$inStreamCat==0,]
+lakedata = kfact[c(1,3,9,10)]
+lakedata$WsAreaBin <- cut(lakedata$WsAreaSqKm, quantile(lakedata$WsAreaSqKm), include.lowest=TRUE)
+
+levels(lakedata$WsAreaBin) <- list('<25th'=c("[0.0009,0.151]"), '50-75th'=c("(0.151,0.416]", "(0.416,1.29]"), '>75th' = c("(1.29,6.02e+03]"))
+lakedata$WSA_NAME = lakes@data$WSA9_NAME[match(lakedata$COMID, lakes@data$COMID)]
+
+p <- ggplot(lakedata, aes(WsAreaBin,KffactWs))
+p + stat_summary(fun.data = f, geom="boxplot") + facet_wrap(~ WSA_NAME, ncol=2) +
+  labs(x = 'Watershed Size Classes', y = 'Soil Erodibility') + ggtitle('Lake Basin Soil Erodibility by Size Class of Lake Basin')
+
+p <- ggplot(lakedata, aes(WsAreaBin,AgKffactWs))
+p + stat_summary(fun.data = f, geom="boxplot") + facet_wrap(~ WSA_NAME, ncol=2) +
+  labs(x = 'Watershed Size Classes', y = 'Soil Erodibility on Ag Land') + ggtitle('Lake Basin Soil Erodibility \n on Agricultural Land by Size Class of Lake Basin')
+
+imp = read.csv('L:/Priv/CORFiles/Geospatial_Library/Data/Project/LakeCat/FTP_Staging/LakeCat/FinalTables/ImperviousSurfaces2006_Final.csv')
+imp = imp[imp$inStreamCat==0,]
+lakedata = imp[c(1,3,8)]
+
+lakedata$WsAreaBin <- cut(lakedata$WsAreaSqKm, quantile(lakedata$WsAreaSqKm), include.lowest=TRUE)
+
+levels(lakedata$WsAreaBin) <- list('<25th'=c("[0.0009,0.151]"), '50-75th'=c("(0.151,0.416]", "(0.416,1.29]"), '>75th' = c("(1.29,6.02e+03]"))
+lakedata$WSA_NAME = lakes@data$WSA9_NAME[match(lakedata$COMID, lakes@data$COMID)]
+
+p <- ggplot(lakedata, aes(WsAreaBin,PctImp2006Ws))
+p + stat_summary(fun.data = f, geom="boxplot") + facet_wrap(~ WSA_NAME, ncol=2) +
+  labs(x = 'Watershed Size Classes', y = 'Percent Impervious (log10)') + ggtitle('Lake Basin Percent Impervious by Size Class of Lake Basin') +
+  scale_y_log10()
+
+runoff = read.csv('L:/Priv/CORFiles/Geospatial_Library/Data/Project/LakeCat/FTP_Staging/LakeCat/FinalTables/Runoff_Final.csv')
+runoff = runoff[runoff$inStreamCat==0,]
+lakedata = runoff[c(1,3,8)]
+
+lakedata$WsAreaBin <- cut(lakedata$WsAreaSqKm, quantile(lakedata$WsAreaSqKm), include.lowest=TRUE)
+
+levels(lakedata$WsAreaBin) <- list('<25th'=c("[0.0009,0.151]"), '50-75th'=c("(0.151,0.416]", "(0.416,1.29]"), '>75th' = c("(1.29,6.02e+03]"))
+lakedata$WSA_NAME = lakes@data$WSA9_NAME[match(lakedata$COMID, lakes@data$COMID)]
+
+p <- ggplot(lakedata, aes(WsAreaBin,RunoffWs))
+p + stat_summary(fun.data = f, geom="boxplot") + facet_wrap(~ WSA_NAME, ncol=2) +
+  labs(x = 'Watershed Size Classes', y = 'Runoff') + ggtitle('Lake Basin Runoff by Size Class of Lake Basin') 
+
+census = read.csv('L:/Priv/CORFiles/Geospatial_Library/Data/Project/LakeCat/FTP_Staging/LakeCat/FinalTables/USCensus2010_Final.csv')
+census = census[census$inStreamCat==0,]
+
+lakedata = census[c(1,3,9:10)]
+
+lakedata$WsAreaBin <- cut(lakedata$WsAreaSqKm, quantile(lakedata$WsAreaSqKm), include.lowest=TRUE)
+
+levels(lakedata$WsAreaBin) <- list('<25th'=c("[0.0009,0.151]"), '50-75th'=c("(0.151,0.416]", "(0.416,1.29]"), '>75th' = c("(1.29,6.02e+03]"))
+lakedata$WSA_NAME = lakes@data$WSA9_NAME[match(lakedata$COMID, lakes@data$COMID)]
+
+p <- ggplot(lakedata, aes(WsAreaBin,HUDen2010Ws))
+p + stat_summary(fun.data = f, geom="boxplot") + facet_wrap(~ WSA_NAME, ncol=2) + scale_y_log10() +
+  labs(x = 'Watershed Size Classes', y = 'Housing Unit Density (log10)') + ggtitle('Lake Basin Housing Unit Density \n by Size Class of Lake Basin')
+
+p <- ggplot(lakedata, aes(WsAreaBin,PopDen2010Ws))
+p + stat_summary(fun.data = f, geom="boxplot") + facet_wrap(~ WSA_NAME, ncol=2) + scale_y_log10() +
+  labs(x = 'Watershed Size Classes', y = 'Population (log10)') + ggtitle('Lake Basin Population Density \n by Size Class of Lake Basin')
+```
