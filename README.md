@@ -4,6 +4,7 @@
 The LakeCat DataSet (http://www2.epa.gov/national-aquatic-resource-surveys/lakecat) provides summaries of natural and anthropogenic landscape features for ~378,000 lakes and their associated catchments within the conterminous USA. This repo contains code used in LakeCat to process a suite of landscape rasters to produce watershed metrics for these lakes.
 
 ## Necessary Python Packages and Installation Tips
+
 The scripts for LakeCat rely on several python modules a user will need to install such as numpy, pandas, gdal, fiona, rasterio, geopandas, shapely, pysal, and ArcPy with an ESRI license (minimal steps still using ArcPy).  We highly recommend using a scientific python distribution such as [Anaconda](https://www.continuum.io/downloads) or [Enthought Canopy](https://www.enthought.com/products/canopy/).  We used the conda package manager to install necessary python modules. Our essential packages and versions used are listed below (Windows 64 and Python 2.7.11):
 
 | Package       | Version       | 
@@ -46,32 +47,34 @@ Finally, to use arcpy in this new environment, you will need to copy your Arc .p
 
 To your environment directory which should look something like:
 
-+ C:\Anaconda\envs\streamcat\Lib\site-packages\DTBGGP64.pth
++ C:\Anaconda\envs\lakecat\Lib\site-packages\DTBGGP64.pth
 
 Note that the exact paths may vary depending on the version of ArcGIS and Anaconda you have installed and the configuration of your computer
 
-##How to Run Scripts
+##How to Run Scripts 
+
 ###The scripts make use of 'control tables' to pass all the particular parameters to the two primary scripts: 
+
 + [LakeCat.py](https://github.com/USEPA/LakeCat/blob/master/LakeCat.py).
 + [MakeFinalTables_LakeCat.py](https://github.com/USEPA/LakeCat/blob/master/MakeFinalTables_LakeCat.py).  
 
 In turn, these scripts rely on a set of functions in [LakeCat_functions.py](https://github.com/USEPA/LakeCat/blob/master/LakeCat_functions.py). 
 
 A table with all required parameters is used to process landscape layers in LakeCat:
-+ [ControlTable_StreamCat](https://github.com/USEPA/StreamCat/blob/master/ControlTable_StreamCat.csv)
++ [ControlTable_LakeCat](https://github.com/USEPA/LakeCat/blob/master/ControlTable_LakeCat.csv)
 
 
-###Running StreamCat.py to generate new StreamCat metrics
+###Running LakeCat.py to generate new LakeCat metrics
 
-After editing the control tables to provide necessary information, such as directory paths, the following stesps will excecute processes to generate new watershed metrics for the conterminous US. All examples in the control table are for layers (e.g., STATSGO % clay content of soils) that were processed as part of the StreamCat Dataset. This example assumes run in Anaconda within Conda shell.
+After editing the control tables to provide necessary information, such as directory paths, the following stesps will excecute processes to generate new watershed metrics for the conterminous US. All examples in the control table are for layers (e.g., STATSGO % clay content of soils) that were processed as part of the LakeCat Dataset. This example assumes run in Anaconda within Conda shell.
 
-1. Edit [ControlTable_StreamCat](https://github.com/USEPA/StreamCat/blob/master/ControlTable_StreamCat.csv) and set desired layer's "run" column to 1. All other columns should be set to 0
-2. Open a Conda shell and type "activate StreamCat" 
+1. Edit [ControlTable_LakeCat](https://github.com/USEPA/LakeCat/blob/master/ControlTable_LakeCat.csv) and set desired layer's "run" column to 1. All other columns should be set to 0
+2. Open a Conda shell and type "activate LakeCat" 
 3. At the Conda shell type: "Python<space>"
-4. Drag and drop "StreamCat.py" to the Conda shell from a file manager followed by another space
+4. Drag and drop "LakeCat.py" to the Conda shell from a file manager followed by another space
 5. Drag and drop the control table to the Conda shell
 
-Final text in Conda shell should resemble this: python C:\some_path\StreamCat.py  C:\some_other_path\ControlTable.csv
+Final text in Conda shell should resemble this: python C:\some_path\LakeCat.py  C:\some_other_path\ControlTable.csv
 
 
 ## EPA Disclaimer
