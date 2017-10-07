@@ -51,9 +51,9 @@ To your environment directory which should look something like:
 
 Note that the exact paths may vary depending on the version of ArcGIS and Anaconda you have installed and the configuration of your computer
 
-##How to Run Scripts 
+## How to Run Scripts 
 
-###The scripts make use of 'control tables' to pass all the particular parameters to the two primary scripts: 
+### The scripts make use of 'control tables' to pass all the particular parameters to the two primary scripts: 
 
 + [LakeCat.py](https://github.com/USEPA/LakeCat/blob/master/LakeCat.py).
 + [MakeFinalTables_LakeCat.py](https://github.com/USEPA/LakeCat/blob/master/MakeFinalTables_LakeCat.py).  
@@ -64,7 +64,7 @@ A table with all required parameters is used to process landscape layers in Lake
 + [ControlTable_LakeCat](https://github.com/USEPA/LakeCat/blob/master/ControlTable_LakeCat.csv)
 
 
-###Running LakeCat.py to generate new LakeCat metrics
+### Running LakeCat.py to generate new LakeCat metrics
 
 After editing the control tables to provide necessary information, such as directory paths, the following stesps will excecute processes to generate new watershed metrics for the conterminous US. All examples in the control table are for layers (e.g., STATSGO % clay content of soils) that were processed as part of the LakeCat Dataset. This example assumes run in Anaconda within Conda shell.
 
