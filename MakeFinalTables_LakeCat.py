@@ -1,4 +1,4 @@
-# Script to build final StreamCat tables.
+# Script to build final LakeCat tables.
 # Date: Jan 22, 2016
 # Author: Rick Debbout
 # NOTE: run script from command line passing directory and name of this script 
