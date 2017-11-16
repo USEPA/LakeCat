@@ -1,158 +1,81 @@
 # LakeCat
 
-The LakeCat DataSet provides summaries of natural and anthropogenic landscape features for ~378,000 lakes and their associated catchments within the conterminous USA using the [NHDPlus Version 2](http://www.horizon-systems.com/NHDPlus/NHDPlusV2_data.php) (NHDPlusV2) as the geospatial framework. 
+## Description:
+The LakeCat DataSet (http://www2.epa.gov/national-aquatic-resource-surveys/lakecat) provides summaries of natural and anthropogenic landscape features for ~378,000 lakes and their associated catchments within the conterminous USA. This repo contains code used in LakeCat to process a suite of landscape rasters to produce watershed metrics for these lakes.
 
-## Determining On-Network and Off-Network Lakes
+## Necessary Python Packages and Installation Tips
 
-To begin, we determine which NHD waterbodies are on the NHD network based on joining the following tables within each NHDPlusV2 HydroRegion (see code in *FindIsolatedLakes.py*):
+The scripts for LakeCat rely on several python modules a user will need to install such as numpy, pandas, gdal, fiona, rasterio, geopandas, shapely, pysal, and ArcPy with an ESRI license (minimal steps still using ArcPy).  We highly recommend using a scientific python distribution such as [Anaconda](https://www.continuum.io/downloads) or [Enthought Canopy](https://www.enthought.com/products/canopy/).  We used the conda package manager to install necessary python modules. Our essential packages and versions used are listed below (Windows 64 and Python 2.7.11):
 
-  * NHDWaterbodies
-  * NHDFlowline
-  * Catchment
-  * PlusFlowlineVAA
+| Package       | Version       | 
+| ------------- |--------------:|
+| fiona         | 1.7.7         | 
+| gdal          | 2.2.0         | 
+| geopandas     | 0.2.1         |  
+| geos          | 3.5.1         |
+| libgdal       | 2.0.0         |
+| numpy         | 1.12.1        |
+| pandas        | 0.20.2        |
+| pyproj        | 1.9.5.1       |
+| pysal         | 1.13.0        |
+| rasterio      | 1.0a9         |
+| shapely       | 1.5.17        |
+
+If you are using Anaconda, creating a new, clean 'LakeCat' environment with these needed packages can be done easily and simply one of several ways:
+
+* In your conda shell, add one necessary channel and then download the lakecat environment from the Anaconda cloud:
+  + conda config --add channels conda-forge
+  + conda env create mweber36/lakecat
   
-Lakes that are associated to flowlines through the 'WBAREACOMID' in the NHDFlowline file can use data directly from StreamCat to represent watershed-level landscape characteristics and are designated as *On_Network* lakes. 
+* Alternatively, using the lakecat.yml file in this repository, in your conda shell cd to the directory where your lakecat.yml file is located and run:
+  + conda env create -f LakeCat.yml
+  
+* To build environment yourself, do:
+  + conda env create -n LakeCat rasterio geopandas
+  + pip install georasters
 
-The remaining waterbodies are not on the stream network (as depicted with the NHDFlowline file) and are designated as *Off_Network* lakes and saved as *IsolatedLakes.shp*. Watershed characteristics are developed for these lakes using the Off_Network Process (see below).
+* To activate this new environment and open Spyder, type the following at the conda prompt
+  + activate LakeCat
+  
+  Then
 
-## Off_Network Process
+  + Spyder
+  
+Finally, to use arcpy in this new environment, you will need to copy your Arc .pth file into your new environment.  Copy the .pth file for your install of ArcGIS located in a directory like:
 
-### Step 1 -- Create local basins for each lake
++ C:\Python27\ArcGISx6410.3\Lib\site-packages\DTBGGP64.pth
 
-Operating within each raster processing unit (RPU) of the NHDPlusV2, all off-network lakes were converted to ESRI shapefiles to rasters (.TIFF format). We then used the ArcGIS Watershed tool and the NHDPlusV2 flow direction raster (named fdr within the NHDPlusV2) to delineate the contributing areas to each lake. This process uses the lake raster as pour points on the fdr raster to create watersheds. Each watershed is a portion of the NHDPlusV2 catchment which the lake falls within and define the local watershed basin for the lake. 
+To your environment directory which should look something like:
 
-![Off-Network](https://cloud.githubusercontent.com/assets/7052993/19703884/648f7f0e-9aba-11e6-90e0-e909b49f5de2.PNG)
++ C:\Anaconda\envs\lakecat\Lib\site-packages\DTBGGP64.pth
 
-*Note that the off-network lake basin is only a portion of the catchment which it is in.*
+Note that the exact paths may vary depending on the version of ArcGIS and Anaconda you have installed and the configuration of your computer
 
-### Step 2 -- Find flow connections between basins
+## How to Run Scripts 
 
-Using adjacent local basins we can find flow connections between them with the ArcGIS shift tool and the RPU's flow direction raster. The script, LakeConnect.py, shifts the raster cells of each zones local watershed basins and tests if the value of that shifted cell is not the value that it holds, and second, then tests if the flow direction raster value demonstrates that there is flow in the same direction as the direction of the shift.  
+### The scripts make use of 'control tables' to pass all the particular parameters to the two primary scripts: 
 
-![shifted](https://cloud.githubusercontent.com/assets/7052993/19706148/306e4948-9ac5-11e6-9a80-c7e3362f7bc1.PNG)![directions](https://cloud.githubusercontent.com/assets/7052993/19816175/222618ce-9cfb-11e6-9290-9c737bb0adb2.PNG)
++ [LakeCat.py](https://github.com/USEPA/LakeCat/blob/master/LakeCat.py).
++ [MakeFinalTables_LakeCat.py](https://github.com/USEPA/LakeCat/blob/master/MakeFinalTables_LakeCat.py).  
 
-This is done for each of the 8 directions that a raster cell can be moved, shown above. If both conditions are true the value of the basin IDs are saved in a flow table to be used to create full watersheds in the accumulation process.
+In turn, these scripts rely on a set of functions in [LakeCat_functions.py](https://github.com/USEPA/LakeCat/blob/master/LakeCat_functions.py). 
 
-
-
-### Step 3 -- Perform zonal statistics and accumulate
-
-The *LakeCat.py* script creates tables for each landscape metric summarizing both for individual lake basins and for cumulative upstream watersheds. This process happens independently of the On-Network process and then tables from both processes are appended together.
-
-## On_Network Process
-
-### Step 1 -- Find lakes On_Network
-
-The *findIsolatedLakes.py* script uses table joins to determine lakes that are in the NHDPlus version 2 network. The table below shows the keys that connect all of the NHDPlusV2 tables.
-
-![tableconnect2](https://cloud.githubusercontent.com/assets/7052993/19823341/f037171a-9d1c-11e6-84bb-5035685a7b2e.PNG)
-
-Once all of these tables are joined, we can group them by the waterbody COMID. In each group there can be more than one flowline associated to each waterbody.  Using the 'Hydroseq' attribute, we can find the catchment 'COMID' that is furthest downstream, and use this 'COMID to refer to StreamCat data and obtain summarized characteristics of each landscape layer. This connection is stored in a lookup table, CATCHMENT COMID <--> WATERBODY COMID. LakeCat final tables reflect WATERBODY COMID in their COMID field. 
-
-### Step 2 -- Accumulate associated catchments for local area 'Cat' metrics
-
-StreamCat tables contain summarizations for individual stream catchments and for cumulative upstream watersheds. In order to adjust the catchment metrics, we take all of the associated catchments to each lake and summarize metrics for the entire area that they cover. The *findIsolatedLakes.py* script creates arrays that hold the associated catchment COMIDs with the lakes most downstream catchment COMID. The same accumulation function is used to create summary statistics across all catchments associated with each waterbody, and is merged into the final table with the watershed metrics.
-
-![multfl](https://cloud.githubusercontent.com/assets/7052993/19825737/e17463a8-9d31-11e6-9a69-a4d1364b6aea.png)
-
-*Shows multiple flowlines and associated catchments to a given waterbody -- highlighted in yellow*
-
-## QA Table from On/Off network selection and basin creation
-
-![qa_tbl](https://cloud.githubusercontent.com/assets/7052993/23385978/7804e3e8-fd08-11e6-84f2-b5a0f69e3324.PNG)
-
-## Issues
-
-While creating this dataset, a small number of lakes had to be left out of our processing model due to one of a few reasons.
-
-### Off-Network Lake displays On-Network accumulation properties
-
-Within the context of all of the NHD data we are using to model lake watersheds, there are some inconsistencies between what is published in the vector format vs the raster format. For the off-network lake basins to be made we rely on the flow direction raster which, at 30 meter resolution, isn't able to account for all of the detail needed to describe areas with low slope. 
-
-After isolating the off-network lakes and creating rasters of lake bodies within each raster processing unit (RPU), we compared the area covered in the basins with the catchment area and found that some basins were created that are significantly larger than the catchment which the lake exists in.
-
-![extend](https://cloud.githubusercontent.com/assets/7052993/19867420/fb79beac-9f60-11e6-8a4d-c2e66a5e221e.PNG)![arid](https://cloud.githubusercontent.com/assets/7052993/19869318/0aa3409e-9f69-11e6-9dd8-f005fc9279ba.PNG)
-
-*I need to learn the association made with flowlines and waterbodies and how they work. There are 758 lakes that got removed in this process and it seems that they should be on-network but don't link up with any flowlines. I'm unsure of how to state this in an intelligent way other than just mention the the waterbody boundary in raster format covers the fdr in a spot that should put it on-network, yet there isn't a flowline to make that connection. In this case, the lake is in an arid zone and doesn't even exist, and according to google imagery neither does the flowline. So it is an area that is only seasonally containing water features.*
-
-Waterbodies are sometimes very close to flowlines, yet have no association with them. 
-
-### In_Network accumulated watersheds have smaller area than the waterbody
-
-During QA, we noticed that 384 accumulated watersheds for lakes are smaller than the lake itself based on area alone. 
-
-### NHD Catchments cover a smaller area than the NHD Waterbody -- On-Network
-
-Defining NHD Waterbodies by associated flowlines and ultimately catchments has proved impossible in some cases where one catchment is associated to the waterbody and the catchment associated is smaller than the waterbody itself. Thus, the 'cat' metric is not accurate to the basin in which should hold the lake.
-
-##QA Methods
-
-Lakes outside of the boundaries of the NHDPlusV2 -969 lakes. Removed in the findIsolatedLakes.py script after all isolated lakes are appended together. SelectLayerByLocation_management tool finds all lakes that are "COMPLETELY_WITHIN" and the performs a "SWITCH_SELECTION" to arrive at the lakes that are outside of the boundary and deleted from the file.
-
-On_Net_Cvg_Diffs -- come from the script chkNLWwLakeCat.py comparing the lake area geometry with the geometry of what we use as an on-network catchment basin. This outputs the catchment COMID and associated catchment COMID with the percentage of lake that is uncovered by the basins geometry.
-
-off-network problem lakes -- findProblemLakes.py prints out table where an off-network lake basin's area is larger than the catchment in which the lake is found. This table was used to remove 758 lakes from the IsolatedLakes.shp file.
-
-##updating: 12/20/2016
-
-![vpu_join3](https://cloud.githubusercontent.com/assets/7052993/21364695/c1dfe21c-c6a6-11e6-8671-cf7f4808428d.png)
-
-###New order of spatial joins/ table merges:
-* do the sjoin with the vpu AFTER we find on-network lakes to hold onto problem lakes from other zones
-* use sinks.shp to  hold onto more on-network lakes that get overdrawn
-* 
-* 
-
-## On-Network Lakes left out due to zone '04' exclusion in StreamCat
+A table with all required parameters is used to process landscape layers in LakeCat:
++ [ControlTable_LakeCat](https://github.com/USEPA/LakeCat/blob/master/ControlTable_LakeCat.csv)
 
 
+### Running LakeCat.py to generate new LakeCat metrics
 
-# COMID from zone 17 of three lakes that have interesting flow (one<--2-->theOther) && one doesn't flow to the other 2!!
-* 23043937
+After editing the control tables to provide necessary information, such as directory paths, the following stesps will excecute processes to generate new watershed metrics for the conterminous US. All examples in the control table are for layers (e.g., STATSGO % clay content of soils) that were processed as part of the LakeCat Dataset. This example assumes run in Anaconda within Conda shell.
 
-# Duplicated in the off-network process or in the NHD:
-* 13871500,  7109029, 18156163, 13118610
+1. Edit [ControlTable_LakeCat](https://github.com/USEPA/LakeCat/blob/master/ControlTable_LakeCat.csv) and set desired layer's "run" column to 1. All other columns should be set to 0
+2. Open a Conda shell and type "activate LakeCat" 
+3. At the Conda shell type: "Python<space>"
+4. Drag and drop "LakeCat.py" to the Conda shell from a file manager followed by another space
+5. Drag and drop the control table to the Conda shell
 
-# 12 repeated COMIDs in off_networks.shp need to be filtered out!
-
-* out of bounds but duplicated between the 2 zones! fixed with drop_duplicates!
-
-
-## <font color='red'>Omitted NHDPlusV21 waterbody COMIDs</font>
-COMID |	VPU |	REASON FOR OMISSION
-:------|:---:|--------------------:		
-14300071	|10U|	OVERLAPPED BY COMID 12568346
-12967474	|10U|	DOESN'T HIT CELL CENTER
-120052923	|10U|	OVERLAPPED BY COMID 120051949
-167245973	|10L|	OVERLAPPED BY COMID 120053749
-14819137	|07|	DOESN'T HIT CELL CENTER
-14820667	|07|	DOESN'T HIT CELL CENTER
-944040052	|14|	DOESN'T HIT CELL CENTER
-23854057	|17|	DOESN'T HIT CELL CENTER
-24052877	|17|	OVERLAPPED BY COMID 20315924
-120054048	|16|	OVERLAPPED BY COMID 120053946
-19861298	|16|	OVERLAPPED BY COMID 24989585
-162424445	|15|	OVERLAPPED BY COMID 120053954
-22323839	|09|	DOESN'T HIT CELL CENTER
-15235574	|08|	DOESN'T HIT CELL CENTER
-22700864	|08|	DOESN'T HIT CELL CENTER
-14725382	|04|	OVERLAPPED BY COMID 166766632
-20166532	|03N|	DOESN'T HIT CELL CENTER
-120054030	|18|	OVERLAPPED BY COMID 120053926
-
-# working info...
-* old process output 377347 COMIDs
-* new process output 378090 COMIDs
-* difference of 743 lakes
-
-#### don't think it's necessary to hold on to CatAreaSqKm in join_tables, it's not the accumulated version for lakes that are covered by more than one catchment
-
-#### join_tables can be merged with the GeoDF for off-net lakes
+Final text in Conda shell should resemble this: python C:\some_path\LakeCat.py  C:\some_other_path\ControlTable.csv
 
 
-missing in new...
-7887298
-11974699
-
-#### Another check to make later might be to create watersheds for the off_network lakes and see if there is an intersection with an on-network lakes, then see what those accumulate
-
+## EPA Disclaimer
+The United States Environmental Protection Agency (EPA) GitHub project code is provided on an "as is" basis and the user assumes responsibility for its use.  EPA has relinquished control of the information and no longer has responsibility to protect the integrity , confidentiality, or availability of the information.  Any reference to specific commercial products, processes, or services by service mark, trademark, manufacturer, or otherwise, does not constitute or imply their endorsement, recommendation or favoring by EPA.  The EPA seal and logo shall not be used in any manner to imply endorsement of any commercial product or activity by EPA or the United States Government.
