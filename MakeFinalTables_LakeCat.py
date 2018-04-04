@@ -115,6 +115,6 @@ for table in tables:
 #            rmtbl = pd.read_csv('L:/Priv/CORFiles/Geospatial_Library/Data/Project/SSWR1.1B/FTP_Staging/StreamCat/Documentation/DataProcessingAndQualityAssurance/QA_Files/ProblemStreamsR04.csv')[['COMID']]
         
         final = final[final.columns.tolist()[:5] + [x for x in final.columns[5:] if 'Cat' in x] + [x for x in final.columns[5:] if 'Ws' in x]].fillna('NA')                  
-        final.to_csv('%s/%s_Final.csv' % (outDir, table))
+        final.to_csv('%s/%s.csv' % (outDir, table))
 print 'All Done.....'
 
