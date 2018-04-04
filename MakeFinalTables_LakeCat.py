@@ -31,7 +31,7 @@ if len(missing) > 0:
     print 'Check output from LakeCat.py'
     sys.exit()
 for table in tables:
-    if not os.path.exists(outDir +'/' + table + '_Final.csv'):         
+    if not os.path.exists(outDir +'/' + table + '.csv'):         
         print 'Running ' + table + ' .....'
         for var in range(len(tables[table])):
             accum = ctl.accum_type.ix[ctl.Final_Table_Name == table].any()
