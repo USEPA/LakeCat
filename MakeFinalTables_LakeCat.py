@@ -1,4 +1,4 @@
-# Script to build final StreamCat tables.
+# Script to build final LakeCat tables.
 # Date: Jan 22, 2016
 # Author: Rick Debbout
 # NOTE: run script from command line passing directory and name of this script 
@@ -32,7 +32,11 @@ if len(missing) > 0:
     sys.exit()
 allStats = pd.DataFrame()    
 for table in tables:
+<<<<<<< HEAD
     if not os.path.exists('%s/%s_Final.csv' % (outDir, table)):         
+=======
+    if not os.path.exists(outDir +'/' + table + '.csv'):         
+>>>>>>> 4708eb9b304d5fe213ddb1e149b9ff5be9c2f35b
         print 'Running ' + table + ' .....'
         for var in range(len(tables[table])):
             accum = ctl.accum_type.ix[ctl.Final_Table_Name == table].any()
@@ -124,8 +128,12 @@ for table in tables:
         allStats = pd.concat([allStats,statTbl])
         final = final.set_index('COMID').fillna('NA')       
         final = final[final.columns.tolist()[:5] + [x for x in final.columns[5:] if 'Cat' in x] + [x for x in final.columns[5:] if 'Ws' in x]].fillna('NA')                  
+<<<<<<< HEAD
         final.to_csv('%s/%s_Final.csv' % (outDir, table))
 allStats.to_csv('%s/Documentation/tableStats.csv' % outDir.strip('/FinalTables'),index=False)
+=======
+        final.to_csv('%s/%s.csv' % (outDir, table))
+>>>>>>> 4708eb9b304d5fe213ddb1e149b9ff5be9c2f35b
 print 'All Done.....'
 
 
