@@ -3,7 +3,7 @@
 Created on Tue May 31 15:24:06 2016
 
 
-#ctl = pd.read_csv('D:/Projects/LakeCatOutput/ControlTable_LakeCat_RD.csv')
+#ctl = pd.read_csv('D:/Projects/LakeCat_scrap/ControlTable_LakeCat_RD.csv')
 
 @author: Rdebbout
 """
@@ -131,7 +131,7 @@ for ll in lls:  # loop through each FullTableName in control table
                            accum['upstream'], 
                            'Ws','UID')    
     stats = pd.merge(stats, up, on='UID')
-    stats = pd.merge(stats,ws, on='UID')
+    stats = pd.merge(stats, ws, on='UID')
     cols = stats.columns[1:].tolist()
     # goto StreamCat to get On-Net-work lake results from assoc. COMIDs
     stats['inStreamCat'] = 0
@@ -139,8 +139,6 @@ for ll in lls:  # loop through each FullTableName in control table
     lks = dbf2DF('%s/off-network.dbf' % frame)[['COMID','UID']]
     off = pd.merge(lks,stats,on='UID',how='right')
     off.drop('UID',axis=1,inplace=True)
-    if summaryfield != None:
-        off.columns = [col.replace('M3','') for col in off.columns]
     on = getOnNetLakes2(name, StreamCat, 
                            '%s/joinTables' % frame , 
                            '%s/onNet_LakeCat.npz' % npy, 

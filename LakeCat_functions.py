@@ -927,7 +927,7 @@ def NHDtblMerge(nhd, bounds, out):
 ##############################################################################
 
 
-def makeBasins (nhd, bounds, out):
+def makeBasins(nhd, bounds, out):
     '''
     __author__ =  "Rick Debbout <debbout.rick@epa.gov>"
     
@@ -980,7 +980,7 @@ def makeBasins (nhd, bounds, out):
                 rpuShp = runit.query("UnitID == '%s'" % rpu).drop(['Hydroseq',
                                                                 'UnitType'],
                                                                     axis=1)
-                lakes = sjoin(lakes, rpuShp, op='within')
+                lakes = sjoin(lakes, rpuShp, op='within') #this line removes lakes that straddle RPU borders
                 lakes = lakes.drop('index_right',axis=1)
                 lakes.rename(columns={'UnitID': 'RPU'}, inplace=True)
             if len(rpus[zone]) == 1:
@@ -1089,7 +1089,7 @@ def makeNParrays(loc):
     ---------
     loc        : location of LakeCat output directory
     ''' 
-    flow = pd.read_csv("%s/LakeCat_PlusFlow.csv" % loc)
+    flow = pd.read_csv("%s/LakeCat_npy/LakeCat_PlusFlow.csv" % loc)
     fcom,tcom = flow.FROMCOMID.values,flow.TOCOMID.values
     UpCOMs = defaultdict(list)
     for i in range(0, len(flow), 1):
@@ -1133,14 +1133,14 @@ def main (nhd, out):
         os.mkdir("%s/LakeCat_npy" % out)
     
     
-    NHDbounds = gpd.read_file(
-                            "%s/NHDPlusGlobalData/BoundaryUnit.shp" % nhd).drop(
-                                            ['AreaSqKM','DrainageID','Shape_Area',
-                                             'Shape_Leng','UnitName'], axis=1)
-    if not os.path.exists("%s/Lake_QA.csv" % out):
-        NHDtblMerge(nhd, NHDbounds, out)
-    makeBasins(nhd, NHDbounds, out)
-    makeNParrays('%s/LakeCat_npy' % out)
+#    NHDbounds = gpd.read_file(
+#                            "%s/NHDPlusGlobalData/BoundaryUnit.shp" % nhd).drop(
+#                                            ['AreaSqKM','DrainageID','Shape_Area',
+#                                             'Shape_Leng','UnitName'], axis=1)
+#    if not os.path.exists("%s/Lake_QA.csv" % out):
+#        NHDtblMerge(nhd, NHDbounds, out)
+#    makeBasins(nhd, NHDbounds, out)
+    makeNParrays('%s' % out)
 ##############################################################################
 
 

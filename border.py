@@ -109,11 +109,12 @@ def makeBrdrPctFile(b_file, z_file, b_field, z_field):
 if __name__ == '__main__':
     
     us_file = 'L:/Priv/CORFiles/Geospatial_Library/Data/RESOURCE/POLITICAL/BOUNDARIES/NATIONAL/TIGER_2010_State_Boundaries.shp'
-    lake_basins = 'D:/Projects/LKCAT_frame/shps/allBasins.shp'
-    here = 'D:/Projects/LKCAT_frame/border'
+    lake_basins = 'D:/Projects/Frame_NULL/shps/allBasins.shp'
+    here = 'D:/Projects/Frame_NULL/border'
     if not os.path.exists(here):
         os.mkdir(here)
     nhd = 'D:/NHDPlusV21'
+    print 'Making border PctFull csv'
     # LakeCat
     csv = makeBrdrPctFile(us_file, lake_basins, 'NAME10', 'UID')
     # StreamCat
