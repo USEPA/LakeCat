@@ -14,10 +14,13 @@ import arcpy
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-ctl = pd.read_csv(sys.argv[1])
+#ctl = pd.read_csv(sys.argv[1])
+ctl = pd.read_csv(r'F:/GitProjects/LakeCat/ControlTable_LakeCat.csv')
+ctl = pd.read_csv('F:/GitProjects/NARS/Landscape Metrics/ControlTable_LakeCat_NLA17.csv')
 arcpy.CheckOutExtension("spatial")
 from datetime import datetime as dt
-sys.path.append(ctl.DirectoryLocations.values[3])  
+#sys.path.append(ctl.DirectoryLocations.values[3])  
+sys.path.append('F:/GitProjects/LakeCat')
 from arcpy.sa import ZonalStatisticsAsTable, TabulateArea
 from LakeCat_functions import inputs, rpus, dbf2DF, getOnNetLakes2, chkColumnLength, PointInPoly, Accumulation
 

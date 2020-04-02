@@ -79,7 +79,7 @@ for lake in offnet:
 
 
 
-    #Read in on-network numpy files
+#Read in on-network numpy files
 tmp_np = np.load(ws_dir + 'onNetFramework.npz')
 on_uids = tmp_np['uids']
 #on_lengths = tmp_np['lengths']
@@ -90,7 +90,7 @@ on_comids_trns = tmp_np['on_comids_trns']
 vectunit = tmp_np['vectunit']
 hydreg = tmp_np['hydreg']
 del tmp_np
-    #Create on-net lake watersheds
+#Create on-net lake watersheds
 onnet = lakes[np.in1d(lakes, on_comids_trns)]
 onuids = on_uids_trns[np.in1d(on_comids_trns, onnet)]
 onuids = on_uids[np.in1d(on_uids, onuids)]

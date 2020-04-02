@@ -10,6 +10,8 @@ import sys, os
 import pandas as pd
 #from collections import  OrderedDict
 ctl = pd.read_csv(sys.argv[1]) #ctl = pd.read_csv('D:/Projects/LakeCat_scrap/ControlTable_LakeCat_RD.csv')
+ctl = pd.read_csv(r'F:/GitProjects/LakeCat/ControlTable_LakeCat.csv')
+ctl = pd.read_csv('F:/GitProjects/NARS/Landscape Metrics/ControlTable_LakeCat_NLA17.csv')
 #inputs = OrderedDict([('10U','MS'),('10L','MS'),('07','MS'),('11','MS'),('06','MS'),('05','MS'),('08','MS'),\
 #                      ('01','NE'),('02','MA'),('03N','SA'),('03S','SA'),('03W','SA'),('04','GL'),('09','SR'),\
 #                      ('12','TX'),('13','RG'),('14','CO'),('15','CO'),('16','GB'),('17','PN'),('18','CA')])
@@ -18,7 +20,7 @@ outDir = ctl.DirectoryLocations.values[6]
 tables = dict()
 for row in range(len(ctl.Final_Table_Name)):
     if ctl.run[row] == 1 and  len(ctl.Final_Table_Name[row]):
-        tables[ctl.Final_Table_Name[row]] = ctl.FullTableName.ix[ctl.Final_Table_Name == ctl.Final_Table_Name[row]].tolist()
+        tables[ctl.Final_Table_Name[row]] = ctl.FullTableName.loc[ctl.Final_Table_Name == ctl.Final_Table_Name[row]].tolist()
         tables[ctl.Final_Table_Name[row]].sort()
 missing = []
 for table in tables:
@@ -35,13 +37,14 @@ for table in tables:
     if not os.path.exists(outDir +'/' + table + '.csv'):
         print 'Running ' + table + ' .....'
         for var in range(len(tables[table])):
-            accum = ctl.accum_type.ix[ctl.Final_Table_Name == table].any()
-            metricName = ctl.MetricName.ix[ctl.FullTableName == tables[table][var]].item()
-            metricType = ctl.MetricType.ix[ctl.FullTableName == tables[table][var]].item()
-            appendMetric = ctl.AppendMetric.ix[ctl.FullTableName == tables[table][var]].item()
+            print var
+            accum = ctl.accum_type.loc[ctl.Final_Table_Name == table].any()
+            metricName = ctl.MetricName.loc[ctl.FullTableName == tables[table][var]].item()
+            metricType = ctl.MetricType.loc[ctl.FullTableName == tables[table][var]].item()
+            appendMetric = ctl.AppendMetric.loc[ctl.FullTableName == tables[table][var]].item()
             if appendMetric == 'none':
                 appendMetric = ''
-            conversion = float(ctl.Conversion.ix[ctl.FullTableName == tables[table][var]].values[0])
+            conversion = float(ctl.Conversion.loc[ctl.FullTableName == tables[table][var]].values[0])
             tbl = pd.read_csv(inDir + '/%s.csv'%(tables[table][var]))
             frontCols = [title for title in tbl.columns for x in ['COMID','AreaSqKm','PctFull','inStreamCat'] if x in title and not 'Up' in title]
             catArea = frontCols[1]
@@ -50,8 +53,8 @@ for table in tables:
             wsPct = frontCols[4]
             frontCols = [frontCols[i] for i in [0,1,3,2,4,5]] #re-order for correct sequence
             summary = None
-            if ctl.summaryfield.ix[ctl.Final_Table_Name == table].any():
-                summary = ctl.summaryfield.ix[ctl.FullTableName == tables[table][var]].item().split(';')
+            if ctl.summaryfield.loc[ctl.Final_Table_Name == table].any():
+                summary = ctl.summaryfield.loc[ctl.FullTableName == tables[table][var]].item().split(';')
             if metricType == 'Mean':
                 colname1 = metricName + 'Cat' + appendMetric
                 colname2 = metricName + 'Ws' + appendMetric
@@ -124,12 +127,8 @@ for table in tables:
         allStats = pd.concat([allStats,statTbl])
         final = final.set_index('COMID').fillna('NA')
         final = final[final.columns.tolist()[:5] + [x for x in final.columns[5:] if 'Cat' in x] + [x for x in final.columns[5:] if 'Ws' in x]].fillna('NA')
-<<<<<<< HEAD
-        final.to_csv('%s/%s_Final.csv' % (outDir, table))
-allStats.to_csv('%s/Documentation/tableStats.csv' % outDir.strip('/FinalTables'),index=False)
-=======
         final.to_csv('%s/%s.csv' % (outDir, table))
->>>>>>> 4708eb9b304d5fe213ddb1e149b9ff5be9c2f35b
+
 print 'All Done.....'
 
 

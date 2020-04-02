@@ -29,11 +29,11 @@ for reg in inputs:
     x = x + 1
 
 
-on_wd = 'L:/Priv/CORFiles/Geospatial_Library/Data/Project/LakeCat/LakeCat_Framework/LakeCat_npy/'
-ws_dir = 'L:/Priv/CORFiles/Geospatial_Library/Data/Project/LakeCat/Watersheds_Framework/'
-join_dir = 'L:/Priv/CORFiles/Geospatial_Library/Data/Project/LakeCat/LakeCat_Framework/joinTables/'
+on_wd = 'L:/Priv/CORFiles/Geospatial_Library_Projects/LakeCat/LakeCat_Framework/LakeCat_npy/'
+ws_dir = 'L:/Priv/CORFiles/Geospatial_Library_Projects/LakeCat/Watersheds_Framework/'
+join_dir = 'L:/Priv/CORFiles/Geospatial_Library_Projects/LakeCat/LakeCat_Framework/joinTables/'
 
-vpu_dir = 'D:/GISData/NHDPlusV21/NHDPlusGlobalData/'
+vpu_dir = 'H:/NHDPlusV21/NHDPlusGlobalData/'
 
 start_time = time.time()
 vpus = gpd.read_file(vpu_dir + 'VPUs.shp')
@@ -45,7 +45,7 @@ tester = tester[0:21]
 x = 0
 for vpu in tester:
     print vpu
-    tmp1 = np.load(r'L:\Priv\CORFiles\Geospatial_Library\Data\Project\LakeCat\LakeCat_Framework\LakeCat_npy\onNet_LakeCat.npz')['vpus'].item()[vpu]
+    tmp1 = np.load(r'L:\Priv\CORFiles\Geospatial_Library_Projects\LakeCat\LakeCat_Framework\LakeCat_npy\onNet_LakeCat.npz')['vpus'].item()[vpu]
     if x == 0:
         uids = tmp1['comids']
         lengths = tmp1['lengths']
