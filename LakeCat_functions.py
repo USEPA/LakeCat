@@ -1131,15 +1131,15 @@ def main (nhd, out):
         os.mkdir("%s/shps" % out)
         os.mkdir("%s/joinTables" % out)
         os.mkdir("%s/LakeCat_npy" % out)
-    
-    
-#    NHDbounds = gpd.read_file(
-#                            "%s/NHDPlusGlobalData/BoundaryUnit.shp" % nhd).drop(
-#                                            ['AreaSqKM','DrainageID','Shape_Area',
-#                                             'Shape_Leng','UnitName'], axis=1)
-#    if not os.path.exists("%s/Lake_QA.csv" % out):
-#        NHDtblMerge(nhd, NHDbounds, out)
-#    makeBasins(nhd, NHDbounds, out)
+
+
+    NHDbounds = gpd.read_file(
+                            "%s/NHDPlusGlobalData/BoundaryUnit.shp" % nhd).drop(
+                                            ['AreaSqKM','DrainageID','Shape_Area',
+                                             'Shape_Leng','UnitName'], axis=1)
+    if not os.path.exists("%s/Lake_QA.csv" % out):
+        NHDtblMerge(nhd, NHDbounds, out)
+    makeBasins(nhd, NHDbounds, out)
     makeNParrays('%s' % out)
 ##############################################################################
 

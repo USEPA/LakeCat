@@ -31,7 +31,7 @@ ctl = pd.read_csv(r"ControlTable_LakeCat.csv")
 lls = [line for line in ctl.index if ctl.run[line] == 1]
 
 for ll in lls:  # loop through each FullTableName in control table
-    print("running....%s" % ctl.LandscapeLayer[ll])
+    print("running....%s" % ctl.FullTableName[ll])
     accum_type = ctl.accum_type[ll]
     LLyr = "%s/%s" % (LYR_DIR, ctl.LandscapeLayer[ll])
     metric = ctl.MetricName[ll]

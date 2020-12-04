@@ -7,37 +7,32 @@
 #
 
 import sys, os
+import zipfile
 import pandas as pd
-#from collections import  OrderedDict
-ctl = pd.read_csv(sys.argv[1]) #ctl = pd.read_csv('D:/Projects/LakeCat_scrap/ControlTable_LakeCat_RD.csv')
-ctl = pd.read_csv(r'F:/GitProjects/LakeCat/ControlTable_LakeCat.csv')
-ctl = pd.read_csv('F:/GitProjects/NARS/Landscape Metrics/ControlTable_LakeCat_NLA17.csv')
-#inputs = OrderedDict([('10U','MS'),('10L','MS'),('07','MS'),('11','MS'),('06','MS'),('05','MS'),('08','MS'),\
-#                      ('01','NE'),('02','MA'),('03N','SA'),('03S','SA'),('03W','SA'),('04','GL'),('09','SR'),\
-#                      ('12','TX'),('13','RG'),('14','CO'),('15','CO'),('16','GB'),('17','PN'),('18','CA')])
-inDir = ctl.DirectoryLocations.values[2]
-outDir = ctl.DirectoryLocations.values[6]
-tables = dict()
-for row in range(len(ctl.Final_Table_Name)):
-    if ctl.run[row] == 1 and  len(ctl.Final_Table_Name[row]):
-        tables[ctl.Final_Table_Name[row]] = ctl.FullTableName.loc[ctl.Final_Table_Name == ctl.Final_Table_Name[row]].tolist()
-        tables[ctl.Final_Table_Name[row]].sort()
+
+from lake_cat_config import FINAL_DIR, OUT_DIR
+
+ctl = pd.read_csv("ControlTable_LakeCat.csv")
+
+runners = ctl.query("run == 1").groupby("Final_Table_Name")
+tables = runners["FullTableName"].unique().to_dict()
 missing = []
-for table in tables:
-    for var in range(len(tables[table])):
-        if not os.path.exists(inDir + '/%s.csv'%(tables[table][var])):
-            missing.append(tables[table][var] + '.csv')
+for table, metrics in tables.items():
+    for metric in metrics:
+        accumulated_file = OUT_DIR + "/{}.csv".format(metric)
+        if not os.path.exists(accumulated_file):
+            missing.append(metric)
+
 if len(missing) > 0:
     for miss in missing:
-        print 'Missing ' + miss
-    print 'Check output from LakeCat.py'
+        print('Missing ' + miss)
+    print('Check output from LakeCat.py')
     sys.exit()
 allStats = pd.DataFrame()
 for table in tables:
-    if not os.path.exists(outDir +'/' + table + '.csv'):
+    if not os.path.exists(FINAL_DIR +'/' + table + '.csv'):
         print 'Running ' + table + ' .....'
         for var in range(len(tables[table])):
-            print var
             accum = ctl.accum_type.loc[ctl.Final_Table_Name == table].any()
             metricName = ctl.MetricName.loc[ctl.FullTableName == tables[table][var]].item()
             metricType = ctl.MetricType.loc[ctl.FullTableName == tables[table][var]].item()
@@ -45,7 +40,7 @@ for table in tables:
             if appendMetric == 'none':
                 appendMetric = ''
             conversion = float(ctl.Conversion.loc[ctl.FullTableName == tables[table][var]].values[0])
-            tbl = pd.read_csv(inDir + '/%s.csv'%(tables[table][var]))
+            tbl = pd.read_csv(OUT_DIR + '/%s.csv'%(tables[table][var]))
             frontCols = [title for title in tbl.columns for x in ['COMID','AreaSqKm','PctFull','inStreamCat'] if x in title and not 'Up' in title]
             catArea = frontCols[1]
             catPct = frontCols[2]
@@ -125,12 +120,14 @@ for table in tables:
                                                        'MIN': [final[c].min()],
                                                        'MAX':[final[c].max()]})])
         allStats = pd.concat([allStats,statTbl])
+        print(statTbl)
         final = final.set_index('COMID').fillna('NA')
         final = final[final.columns.tolist()[:5] + [x for x in final.columns[5:] if 'Cat' in x] + [x for x in final.columns[5:] if 'Ws' in x]].fillna('NA')
-        final.to_csv('%s/%s.csv' % (outDir, table))
-
+        out_file = '%s/%s.csv' % (FINAL_DIR, table)
+        final.to_csv(out_file)
+        # zip up the file....
+        zf = zipfile.ZipFile("{}/zips/{}.zip".format(FINAL_DIR, table), mode="w")
+        zf.write(out_file, "{}.csv".format(table), compress_type=zipfile.ZIP_DEFLATED)
+        zf.close()
 print 'All Done.....'
 
-
-#    if summaryfield != None:
-#        off.columns = [col.replace('M3','') for col in off.columns]
