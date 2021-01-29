@@ -65,6 +65,7 @@ for ll in lls:  # loop through each FullTableName in control table
                 tbl = dbf2DF(out)
                 tbl.rename(columns={"VALUE":"UID"},inplace=True)
                 stats = pd.concat([stats, tbl])
+        stats.UID = stats.UID.astype(np.int64)
         stats.to_csv(csv, index=False)
 
     if accum_type == "Point":
