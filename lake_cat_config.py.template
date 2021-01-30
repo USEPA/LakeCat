@@ -26,7 +26,7 @@ STATES_FILE = "path/to/file/tl_2008_us_state.shp"
 OUT_DIR = ('C:/path/to/write/out/files/to')
 
 # location for the  final tables
-FINAL_DIR = "L:/Priv/CORFiles/Geospatial_Library_Projects/StreamCat/FTP_Staging/Hydroregions"
+FINAL_DIR = "L:/Priv/CORFiles/Geospatial_Library_Projects/LakeCat/FTP_Staging/FinalTables"
 
 # files that hold the pct_full data, created from ???
 pct_full_file	= "L:/Priv/CORFiles/Geospatial_Library_Projects/StreamCat/ControlTables/ALL_BORDER_CATS.csv"
