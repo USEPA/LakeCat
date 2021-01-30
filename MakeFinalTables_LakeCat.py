@@ -1,12 +1,18 @@
-# Script to build final LakeCat tables.
-# Date: Jan 22, 2016
-# Author: Rick Debbout
-# NOTE: run script from command line passing directory and name of this script
-# and then directory and name of the control table to use like this:
-# > python "/path/to/makeFinalTables.py" /path/to/ControlTable_LakeCat.csv
-#
+"""
+Script to build final LakeCat tables.
+Date: Jan 22, 2016
+Author: Rick Debbout
 
-import sys, os
+NOTE: run script from command line w/in the LakeCat directory, the ControlTable
+is located at the root of this directory and will be read-in from there.
+
+> python MakeFinalTables_LakeCat.py
+
+"""
+
+
+import os
+import sys
 import zipfile
 import pandas as pd
 
@@ -25,19 +31,23 @@ for table, metrics in tables.items():
         if not os.path.exists(accumulated_file):
             missing.append(metric)
 
-if len(missing) > 0:
+if missing:
     for miss in missing:
         print(f"Missing {miss}")
     print("Check output from LakeCat.py")
     sys.exit()
+
 allStats = pd.DataFrame()
 for table, metrics in tables.items():
+
     if not os.path.exists(f"{FINAL_DIR}/{table}.csv"):
+
         print(f"Running {table}.....")
-        metric_table = ctl.loc[ctl.FullTableName.isin(metrics)].copy().reset_index(drop=True)
+        combined_metrics = ctl.FullTableName.isin(metrics)
+        metric_table = ctl.loc[combined_metrics].copy().reset_index(drop=True)
 
         for idx, row in metric_table.iterrows():
-            
+
             a_m = row.AppendMetric if not row.AppendMetric == "none" else ""
             tbl = pd.read_csv(f"{OUT_DIR}/{row.FullTableName}.csv")
             frontCols = [title
@@ -50,8 +60,8 @@ for table, metrics in tables.items():
             summary = row.summaryfield.split(";") if type(row.summaryfield) == str else None
 
             if row.MetricType == "Mean":
-                colname1 = row.MetricName + "Cat" + a_m
-                colname2 = row.MetricName + "Ws" + a_m
+                colname1 = f"{row.MetricName}Cat{a_m}"
+                colname2 =  f"{row.MetricName}Ws{a_m}"
                 tbl[colname1] = ((tbl[f"CatSum{a_m}"] / tbl[f"CatCount{a_m}"]) * row.Conversion)
                 tbl[colname2] = ((tbl[f"WsSum{a_m}"] / tbl[f"WsCount{a_m}"]) * row.Conversion)
                 if idx == 0:
@@ -73,20 +83,31 @@ for table, metrics in tables.items():
                         finalNameList.append(fnlname1)
                         finalNameList.append(fnlname2)
                 if table == "RoadStreamCrossings" or table == "CanalsDitches":
-                    tbl[colname1] = (tbl.CatSum / (tbl.CatAreaSqKm * (tbl.CatPctFull/100)) * row.Conversion) ## NOTE:  Will there ever be a situation where we will need to use "conversion" here
+                    ## NOTE:  Will there ever be a situation where we will need to use "conversion" here
+                    tbl[colname1] = (tbl.CatSum / (tbl.CatAreaSqKm * (tbl.CatPctFull/100)) * row.Conversion)
                     tbl[colname2] = (tbl.WsSum / (tbl.WsAreaSqKm * (tbl.WsPctFull/100)) * row.Conversion)
                 else:
-                    tbl[colname1] = tbl[f"CatCount{a_m}"] / (tbl[f"CatAreaSqKm{a_m}"] * (tbl[f"CatPctFull{a_m}"]/100)) ## NOTE:  Will there ever be a situation where we will need to use "conversion" here
+                    tbl[colname1] = tbl[f"CatCount{a_m}"] / (tbl[f"CatAreaSqKm{a_m}"] * (tbl[f"CatPctFull{a_m}"]/100))
                     tbl[colname2] = tbl[f"WsCount{a_m}"] / (tbl[f"WsAreaSqKm{a_m}"] * (tbl[f"WsPctFull{a_m}"]/100))
                 if idx == 0:
                     if summary:
-                        final = tbl[frontCols + [colname1] + [x for x in finalNameList if "Cat" in x] + [colname2] + [x for x in finalNameList if "Ws" in x]]
+                        final = tbl[frontCols +
+                                    [colname1] +
+                                    [x for x in finalNameList if "Cat" in x] +
+                                    [colname2] +
+                                    [x for x in finalNameList if "Ws" in x]
+                                ]
                         final.columns = [x.replace("M3","") for x in final.columns]
                     else:
                         final = tbl[frontCols + [colname1] + [colname2]]
                 else:
                     if summary:
-                        final = pd.merge(final,tbl[["COMID"] + [colname1] + [x for x in finalNameList if "Cat" in x] + [colname2] + [x for x in finalNameList if "Ws" in x]],on="COMID")
+                        final = pd.merge(final,tbl[["COMID"] +
+                                                    [colname1] +
+                                                    [x for x in finalNameList if "Cat" in x] +
+                                                    [colname2] +
+                                                    [x for x in finalNameList if "Ws" in x]],
+                                                    on="COMID")
                         final.columns = [x.replace("M3","") for x in final.columns]
                     else:
                         final = pd.merge(final,tbl[["COMID",colname1,colname2]],on="COMID")
@@ -102,10 +123,14 @@ for table, metrics in tables.items():
                         wscols.append(col)
                 if idx == 0:
                     final = tbl[frontCols+catcols + wscols].copy()
-                    final.columns = frontCols + [f"Pct{x}Cat{a_m}" for x in lookup.final_val.values] + [f"Pct{y}Ws{a_m}" for y in lookup.final_val.values]
+                    final.columns = (frontCols +
+                                    [f"Pct{x}Cat{a_m}" for x in lookup.final_val.values] +
+                                    [f"Pct{y}Ws{a_m}" for y in lookup.final_val.values])
                 else:
                     final2 = tbl[["COMID"] + catcols + wscols]
-                    final2.columns = ["COMID"] + [f"Pct{x}Cat{a_m}" for x in lookup.final_val.values] + [f"Pct{y}Ws{a_m}" for y in lookup.final_val.values]
+                    final2.columns = (["COMID"] +
+                                        [f"Pct{x}Cat{a_m}" for x in lookup.final_val.values] +
+                                        [f"Pct{y}Ws{a_m}" for y in lookup.final_val.values])
                     final = pd.merge(final,final2,on="COMID")
                     if table == "AgMidHiSlopes":
                         final = final.drop(["PctUnknown1Cat","PctUnknown2Cat",
@@ -121,12 +146,15 @@ for table, metrics in tables.items():
         allStats = pd.concat([allStats,statTbl])
         print(statTbl)
         final = final.set_index("COMID").fillna("NA")
-        final = final[final.columns.tolist()[:5] + [x for x in final.columns[5:] if "Cat" in x] + [x for x in final.columns[5:] if "Ws" in x]].fillna("NA")
+        final = final[final.columns.tolist()[:5] +
+                        [x for x in final.columns[5:] if "Cat" in x] +
+                        [x for x in final.columns[5:] if "Ws" in x]
+                ].fillna("NA")
         out_file = f"{FINAL_DIR}/{table}.csv"
         final.to_csv(out_file)
         # zip up the file....
-        zf = zipfile.ZipFile("{}/zips/{}.zip".format(FINAL_DIR, table), mode="w")
-        zf.write(out_file, "{}.csv".format(table), compress_type=zipfile.ZIP_DEFLATED)
+        zf = zipfile.ZipFile(f"{FINAL_DIR}/zips/{table}.zip", mode="w")
+        zf.write(out_file, f"{table}.csv", compress_type=zipfile.ZIP_DEFLATED)
         zf.close()
 print("All Done.....")
 
