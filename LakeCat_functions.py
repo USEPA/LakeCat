@@ -10,11 +10,7 @@ import os
 import re
 import sys
 import arcpy
-import struct
-import decimal
 import warnings
-import datetime
-import itertools
 import numpy as np
 import pysal as ps
 import pandas as pd
@@ -102,118 +98,16 @@ fiftyseventy = "PROJCS['NAD_1983_Albers',\
               PARAMETER['Direction',1.0],\
               UNIT['User_Defined_Unit',0.01]]"
 
-# this is the projection that will be written out if set to 5070 in QGIS..  
-          
-#"PROJCS['NAD83_Conus_Albers',\
-#GEOGCS['GCS_North_American_1983',\
-#DATUM['D_North_American_1983',\
-#SPHEROID['GRS_1980',6378137.0,298.257222101]],\
-#PRIMEM['Greenwich',0.0],\
-#UNIT['Degree',0.0174532925199433]],\
-#PROJECTION['Albers'],\
-#PARAMETER['false_easting',0.0],\
-#PARAMETER['false_northing',0.0],\
-#PARAMETER['central_meridian',-96.0],\
-#PARAMETER['standard_parallel_1',29.5],\
-#PARAMETER['standard_parallel_2',45.5],\
-#PARAMETER['latitude_of_origin',23.0],\
-#UNIT['Meter',1.0]]"
 
-# this is just another that we had been using, it matches others       
-
-#"PROJCS['NAD_1983_Contiguous_USA_Albers',\
-#GEOGCS['GCS_North_American_1983',\
-#DATUM['D_North_American_1983',\
-#SPHEROID['GRS_1980',6378137.0,298.257222101]],\
-#PRIMEM['Greenwich',0.0],\
-#UNIT['Degree',0.0174532925199433]],\
-#PROJECTION['Albers'],\
-#PARAMETER['false_easting',0.0],\
-#PARAMETER['false_northing',0.0],\
-#PARAMETER['central_meridian',-96.0],\
-#PARAMETER['standard_parallel_1',29.5],\
-#PARAMETER['standard_parallel_2',45.5],\
-#PARAMETER['latitude_of_origin',23.0],\
-#UNIT['Meter',1.0]]"  
-##############################################################################
-
-
-def dbfreader(f):
-    """Returns an iterator over records in a Xbase DBF file.
-
-    The first row returned contains the field names.
-    The second row contains field specs: (type, size, decimal places).
-    Subsequent rows contain the data records.
-    If a record is marked as deleted, it is skipped.
-
-    File should be opened for binary reads.
-
-    """
-    # See DBF format spec at:
-    #     http://www.pgts.com.au/download/public/xbase.htm#DBF_STRUCT
-
-    numrec, lenheader = struct.unpack('<xxxxLH22x', f.read(32))    
-    numfields = (lenheader - 33) // 32
-
-    fields = []
-    for fieldno in xrange(numfields):
-        name, typ, size, deci = struct.unpack('<11sc4xBB14x', f.read(32))
-        name = name.replace('\0', '')       # eliminate NULs from string   
-        fields.append((name, typ, size, deci))
-    yield [field[0] for field in fields]
-    yield [tuple(field[1:]) for field in fields]
-
-    terminator = f.read(1)
-    assert terminator == '\r'
-
-    fields.insert(0, ('DeletionFlag', 'C', 1, 0))
-    fmt = ''.join(['%ds' % fieldinfo[2] for fieldinfo in fields])
-    fmtsiz = struct.calcsize(fmt)
-    for i in xrange(numrec):
-        record = struct.unpack(fmt, f.read(fmtsiz))
-        if record[0] != ' ':
-            continue                        # deleted record
-        result = []
-        for (name, typ, size, deci), value in itertools.izip(fields, record):
-            if name == 'DeletionFlag':
-                continue
-            if typ == "N":
-                value = value.replace('\0', '').lstrip()
-                if value == '':
-                    value = 0
-                elif deci:
-                    value = decimal.Decimal(value)
-                else:
-                    value = int(value)
-            elif typ == 'C':
-                value = value.rstrip()                                   
-            elif typ == 'D':
-                try:
-                    y, m, d = int(value[:4]), int(value[4:6]), int(value[6:8])
-                    value = datetime.date(y, m, d)
-                except:
-                    value = None
-            elif typ == 'L':
-                value = (value in 'YyTt' and 'T') or (value in 'NnFf' and 'F') or '?'
-            elif typ == 'F':
-                value = float(value)
-            result.append(value)
-        yield result
-        
 def dbf2DF(f, upper=True):
-    data = list(dbfreader(open(f, 'rb')))
-    if upper == False:    
-        return pd.DataFrame(data[2:], columns=data[0])
-    else:
-        return pd.DataFrame(data[2:], columns=map(str.upper,data[0]))
-##############################################################################
+    pass
 
-    
+
 def Accumulation(arr, COMIDs, lengths, upStream, tbl_type, icol):
     '''
-    __author__ =  "Marc Weber <weber.marc@epa.gov>" 
+    __author__ =  "Marc Weber <weber.marc@epa.gov>"
                   "Ryan Hill <hill.ryan@epa.gov>"
-    Uses the 'Cat' and 'UpCat' columns to caluculate watershed values and returns those values in 'Cat' columns 
+    Uses the 'Cat' and 'UpCat' columns to caluculate watershed values and returns those values in 'Cat' columns
 	so they can be appended to 'CatResult' tables in other zones before accumulation.
 
     Arguments
@@ -264,7 +158,7 @@ def Accumulation(arr, COMIDs, lengths, upStream, tbl_type, icol):
         if 'PctFull' in name:
             pct = name
     outDF.loc[(outDF[areaName] == 0), outDF.columns[2:]] = np.nan  # identifies that there is no area in catchment mask, then NA values across the table
-    outDF.loc[(outDF[pct] == 0), outDF.columns[2:-1]] = np.nan 
+    outDF.loc[(outDF[pct] == 0), outDF.columns[2:-1]] = np.nan
     return outDF
 ##############################################################################
 
@@ -325,7 +219,7 @@ def bastards(token, tree, chkset=None):
 
 ##############################################################################
 
-    
+
 def swapper(coms, upStream):
     '''
     __author__ =  "Marc Weber <weber.marc@epa.gov>"
@@ -344,15 +238,15 @@ def swapper(coms, upStream):
 ##############################################################################
 
 
-def findUpstreamNpy(numpy_dir, com):  
-    """ Unpacks Numpy files describing the array of upstream COMID's for 
-    each catchment in NHD. Similar to the Arc add-in tool that Marc made to 
+def findUpstreamNpy(numpy_dir, com):
+    """ Unpacks Numpy files describing the array of upstream COMID's for
+    each catchment in NHD. Similar to the Arc add-in tool that Marc made to
     identify upstream flowline/catchments. NOT USED IN LAKECAT PROCESS! for QA.
-    
+
     Arguments
     ---------
     numpy_dir             : Loccation of numpy files
-    com                   : ID of feature 
+    com                   : ID of feature
     """
     comids = np.load(numpy_dir + '/comids.npy')
     lengths= np.load(numpy_dir + '/lengths.npy')
@@ -361,10 +255,10 @@ def findUpstreamNpy(numpy_dir, com):
     n = lengths[:itemindex].sum()
     arrlen = lengths[itemindex]
     return upStream[n:n+arrlen]
-    
+
 ##############################################################################
-    
-    
+
+
 def PointInPoly(points, inZoneData, pct_full, fld='GRIDCODE', summaryfield=None):
     '''
     __author__ =  "Marc Weber <weber.marc@epa.gov>"
@@ -391,7 +285,7 @@ def PointInPoly(points, inZoneData, pct_full, fld='GRIDCODE', summaryfield=None)
         point_poly_join = sjoin(points2, polys, how="left", op="within")
     except:
         polys['link'] = np.nan
-        point_poly_join = polys #gpd.GeoDataFrame( pd.concat( [points2, polys], ignore_index=True) ) 
+        point_poly_join = polys #gpd.GeoDataFrame( pd.concat( [points2, polys], ignore_index=True) )
         fld = 'link'
     # Create group of all points in catchment
     grouped = point_poly_join.groupby(fld)
@@ -399,7 +293,7 @@ def PointInPoly(points, inZoneData, pct_full, fld='GRIDCODE', summaryfield=None)
     point_poly_count.name = 'COUNT'
     # Join Count column on to NHDCatchments table and keep only 'COMID','CatAreaSqKm','CatCount'
     final = polys.join(point_poly_count, on=fld, how='left')
-    final = final[[fld, 'AreaSqKM', 'COUNT']].fillna(0)       
+    final = final[[fld, 'AreaSqKM', 'COUNT']].fillna(0)
     cols = [fld, 'CatAreaSqKm', 'CatCount']
     if not summaryfield == None: # Summarize fields in list with gpd table including duplicates
         point_poly_dups = sjoin(points, polys, how="left", op="within")
@@ -412,22 +306,21 @@ def PointInPoly(points, inZoneData, pct_full, fld='GRIDCODE', summaryfield=None)
     # Merge final table with Pct_Full table based on COMID and fill NA's with 0
     final = pd.merge(final, pct_full, on=fld, how='left')
     final['CatPctFull'] = final['CatPctFull'].fillna(100) # final.head() final.ix[final.CatCount == 0]
-    #print "elapsed time " + str(dt.now()-startTime)
     for name in final.columns:
         if 'AreaSqKm' in name:
             area = name
     # replace CatAreaSqKm with NANs where value is zero
     final.loc[(final[area] == 0), final.columns[2:]] = np.nan
     return final
-    
+
 ##############################################################################
 
 def chkColumnLength(table, LandscapeLayer):
     '''
     __author__ =  "Marc Weber <weber.marc@epa.gov>"
                   "Ryan Hill <hill.ryan@epa.gov>"
-    Checks the number of columns returned from zonal stats and adds any of the 
-    categorical values that that didn't exist within the zone and fills the 
+    Checks the number of columns returned from zonal stats and adds any of the
+    categorical values that that didn't exist within the zone and fills the
     column with zeros so that all categories will be represented in the table.
 
     Arguments
@@ -453,7 +346,7 @@ def chkColumnLength(table, LandscapeLayer):
             table.insert(here, spot ,0)
     return table
 ##############################################################################
-    
+
 
 def getOnNetLakes2(metric, StreamCat, LakeComs, npy_files, nhd):
     '''
@@ -467,8 +360,8 @@ def getOnNetLakes2(metric, StreamCat, LakeComs, npy_files, nhd):
     metric           : Metric name
     StreamCat        : Location of intermediate StreamCat csv files
     LakeComs         : Location of csv's that join waterbody COMID to catchment COMID
-    npy_files        : Location of files that associate all catchments with WBAREACOMID 
-    '''    
+    npy_files        : Location of files that associate all catchments with WBAREACOMID
+    '''
     final = pd.DataFrame()
     for zone in inputs:
         tbl = pd.read_csv('%s/join_%s.csv' % (LakeComs,zone))[['catCOMID','wbCOMID']] # remove
@@ -478,16 +371,16 @@ def getOnNetLakes2(metric, StreamCat, LakeComs, npy_files, nhd):
 #        if metric == 'Elev':
 #            strmCat = strmCat.drop([x for x in strmCat.columns if 'MAX' in x or 'MIN' in x], axis=1)
         cols = [col for col in strmCat.columns if col[:3] =='Cat']
-        iso = strmCat[['COMID'] + cols]        
-        accum = np.load(npy_files)['vpus'].item()[zone]        
-        accumCats = Accumulation(iso, accum['comids'], 
-                                accum['lengths'], 
-                                accum['upstream'], 
+        iso = strmCat[['COMID'] + cols]
+        accum = np.load(npy_files)['vpus'].item()[zone]
+        accumCats = Accumulation(iso, accum['comids'],
+                                accum['lengths'],
+                                accum['upstream'],
                                 '', 'COMID')
 #        # shouldn't be needed if keep tbl_type arg as empty string in Accumulation
-#        accumCats.columns = [col.replace('Ws','Cat') for col in accumCats.columns]        
-        upWs = strmCat.ix[strmCat.COMID.isin(tbl.catCOMID)].drop(cols, axis=1)       
-        newCats = pd.merge(accumCats, upWs, on="COMID")        
+#        accumCats.columns = [col.replace('Ws','Cat') for col in accumCats.columns]
+        upWs = strmCat.ix[strmCat.COMID.isin(tbl.catCOMID)].drop(cols, axis=1)
+        newCats = pd.merge(accumCats, upWs, on="COMID")
         tbl2 = pd.merge(tbl, newCats, left_on='catCOMID', right_on='COMID')
         tbl2 = tbl2.drop(['COMID','catCOMID'], axis=1)
         tbl2.rename(columns={'wbCOMID': 'COMID'}, inplace=True)
@@ -495,12 +388,12 @@ def getOnNetLakes2(metric, StreamCat, LakeComs, npy_files, nhd):
     return final
 
 ##############################################################################
-    
-    
+
+
 def getOnNetLakes(metric, StreamCat, LakeComs):
     """Using the LakeCat join tables linking waterbody COMID to catchment COMID,
     Streamcat ouput is collected and manipulated to accumulate catchment stats
-    for lakes that have more than one catchment associated through the 
+    for lakes that have more than one catchment associated through the
     WBAREACOMI attribute in NHD flowlines.
 
     Arguments
@@ -543,7 +436,7 @@ def makeRat(fn):
     u = np.array(np.unique(data, return_counts=True))
     #  remove NoData value
     u = np.delete(u, np.argwhere(u==nd), axis=1)
-    
+
     # Create and populate the RAT
     rat = gdal.RasterAttributeTable()
     rat.CreateColumn('Value', gdal.GFT_Integer, gdal.GFU_Generic)
@@ -551,17 +444,17 @@ def makeRat(fn):
     for i in range(u[0].size):
         rat.SetValueAsInt(i, 0, int(u[0][i]))
         rat.SetValueAsInt(i, 1, int(u[1][i]))
-    
+
     # Associate with the band
     rb.SetDefaultRAT(rat)
-    
+
     # Close the dataset and persist the RAT
-    ds = None 
-    
+    ds = None
+
     #return the rat to build DataFrame
     df = rat_to_df(rat)
     return df
-       
+
 ##############################################################################
 
 
@@ -588,7 +481,7 @@ def rat_to_df(in_rat):
 
 ##############################################################################
 
- 
+
 def DF2dbf(df, dbf_path, my_specs=None):
     '''
     Convert a pandas.DataFrame into a dbf.
@@ -628,15 +521,15 @@ def DF2dbf(df, dbf_path, my_specs=None):
         db.write(row)
     db.close()
     return dbf_path
-    
+
 ##############################################################################
-    
+
 
 def purge(directory, pattern):
     '''
     __author__ =  "Rick Debbout <debbout.rick@epa.gov>"
-    Clears directory of created rasters that will need to be re-written due to 
-    holding on-network like properties, i.e basins created are larger than the 
+    Clears directory of created rasters that will need to be re-written due to
+    holding on-network like properties, i.e basins created are larger than the
     associated catchment.
 
     Arguments
@@ -647,7 +540,7 @@ def purge(directory, pattern):
     for f in os.listdir(directory):
         if re.search(pattern, f):
             os.remove(os.path.join(directory, f))
-            
+
 ##############################################################################
 
 
@@ -655,7 +548,7 @@ def updateSinks(wbDF,flDF):
     '''
     __author__ =  "Rick Debbout <debbout.rick@epa.gov>"
     Updates the WBARECOMI field in the NHDFlowline GeoDatFrame where NHDSinks
-    intersect with NHDWaterbodies. Not currently held in the NHDPlusV21, but 
+    intersect with NHDWaterbodies. Not currently held in the NHDPlusV21, but
     we can process the waterbodies with our on-network approach.
 
     Arguments
@@ -671,35 +564,35 @@ def updateSinks(wbDF,flDF):
     return flow.reset_index(level=0)
 
 ##############################################################################
-def rollArray(a, d):	
+def rollArray(a, d):
     if len(d) == 4:
         a = a[0,:]
         new = np.roll(np.roll(a, d[0], axis=0), d[1], axis=1)
         new[d[2],:] = a[d[2],:]
-        new[:, d[3]] = a[:, d[3]] 
+        new[:, d[3]] = a[:, d[3]]
     if len(d) == 3:
         new = np.roll(a[0,:], d[0], axis=d[1])
         if d[1] == 0:
             new[d[2],:] = a[0,d[2],:]
         if d[1] == 1:
             new[:,d[2]] = a[0,:,d[2]]
-    return np.expand_dims(new, axis=0) 
+    return np.expand_dims(new, axis=0)
 
 ##############################################################################
-    
+
 
 def makeFlows(arr, shiftd, fdr, path, nd):
     iso = np.not_equal(arr, shiftd) * np.not_equal(shiftd, nd) * np.not_equal(arr, nd)  # cells change value after shift * cells not equal to NoData
     pth = np.equal(fdr,path)  # True when equal to path value
-    val = iso * pth * arr 
+    val = iso * pth * arr
     shiftval = iso * pth * shiftd
     idx = np.not_equal(val,shiftd)
     fromcom = val[idx]
     tocom = shiftval[idx]
     fromcom = fromcom[fromcom > 0]
-    tocom = tocom[tocom > 0]    
+    tocom = tocom[tocom > 0]
     # don't load-in the entire array to the DF, just connection vals
-    df = pd.DataFrame({'TOCOMID' : tocom, 
+    df = pd.DataFrame({'TOCOMID' : tocom,
                        'FROMCOMID' : fromcom,
                             'move' : path})
     return df.drop_duplicates(['FROMCOMID','TOCOMID'])
@@ -712,7 +605,7 @@ def compAll(arr, fdr ,moves, from_to, nd):
         flow = makeFlows(arr, rollArray(np.copy(arr), moves[move][0]), fdr, moves[move][1], nd)
         from_to = pd.concat([from_to,flow])
     return from_to
-    
+
 ##############################################################################
 
 
@@ -739,7 +632,7 @@ def chunk_windows(r, indexes=None, max_ram=250000000):
         if bidx not in r.indexes:
             raise IndexError('band index out of range')
         idx = r.indexes.index(bidx)
-        pixel_size += np.dtype(r.dtypes[idx]).itemsize  
+        pixel_size += np.dtype(r.dtypes[idx]).itemsize
     chunk_size, _ = divmod(max_ram, pixel_size)
     r_h, r_w = r.height, r.width
     if chunk_size >= r_h * r_w:
@@ -753,13 +646,13 @@ def chunk_windows(r, indexes=None, max_ram=250000000):
         for i in range(n_chunks):
             row = i * chunk_height
             # height = min(chunk_height, r_h - row)
-            yield (i, 0), ((row, row+chunk_height), (0, r_w)) 
+            yield (i, 0), ((row, row+chunk_height), (0, r_w))
 
 ##############################################################################
 
 
 def findFlows(zone_file, fdr_file):
-    moves = {'up':[(-1,0,-1),4],'left':[(-1,1,-1),1],'down' :[(1,0,0),64], 
+    moves = {'up':[(-1,0,-1),4],'left':[(-1,1,-1),1],'down' :[(1,0,0),64],
             'right':[(1,1,0),16],'downRight':[(1,1,0,0),32],
             'downLeft':[(1,-1,0,-1), 128],'upRight':[(-1,1,-1,0),8],
             'upLeft':[(-1,-1,-1,-1),2]}
@@ -775,14 +668,14 @@ def findFlows(zone_file, fdr_file):
                 f_r = f.read(window=new_w)
                 flows = pd.concat([flows,compAll(data,f_r,moves,flows,nd)])
     return flows.drop_duplicates(['FROMCOMID','TOCOMID'])
-    
+
 ##############################################################################
 
 
 def NHDtblMerge(nhd, bounds, out):
     '''
     __author__ =  "Rick Debbout <debbout.rick@epa.gov>"
-    Merges all of the NHD tables needed to find on-network lakes. Returns the 
+    Merges all of the NHD tables needed to find on-network lakes. Returns the
     GeoDataFrames that will be used to find off-network lakes. Attribute fields
     COMID, WBARECOMI, and FEATUREID are used to link waterbodies to catchments.
 
@@ -795,30 +688,30 @@ def NHDtblMerge(nhd, bounds, out):
     # build dict of hr/vpu labels to read through NHD
     vpus = bounds.query("UnitType == 'VPU'").copy()
     # initialize containers to append to through processing
-    onNet_connect = {}    
+    onNet_connect = {}
     Obounds = gpd.GeoDataFrame(crs={'init': u'epsg:4269'})
     qa_cols=['Total Waterbodies','On-Network','Off-network','FTYPE_drop',
                                                      'Sink_add','Out_of_bounds']
     qa_tbl = pd.DataFrame()
-    ons = []                                                
+    ons = []
     for zone in inputs:
-        print zone
+        print(zone)
         hr = inputs[zone]
         pre = "%s/NHDPlus%s/NHDPlus%s" % (nhd, hr, zone)
         wbShp = gpd.read_file("%s/NHDSnapshot/Hydrography/NHDWaterbody.shp"%(pre))
-        # hold length of total Waterbodies 
+        # hold length of total Waterbodies
         ttl_WB = len(wbShp)
         # format columns and select out FTYPE
-        wbShp.columns = wbShp.columns[:-1].str.upper().tolist() + ['geometry'] 
+        wbShp.columns = wbShp.columns[:-1].str.upper().tolist() + ['geometry']
         wbShp = wbShp[['AREASQKM','COMID','FTYPE','geometry']]
         wbShp = wbShp.loc[wbShp['FTYPE'].isin(['LakePond','Reservoir'])]
         # hold number of lakes removed from FTYPE
         ttl_FTYPE = ttl_WB - len(wbShp)
-        fl = dbf2DF("%s/NHDSnapshot/Hydrography/NHDFlowline.dbf"%(pre))[['COMID', 
+        fl = dbf2DF("%s/NHDSnapshot/Hydrography/NHDFlowline.dbf"%(pre))[['COMID',
                                                                     'WBAREACOMI']]
         cat = gpd.read_file('%s/NHDPlusCatchment/Catchment.shp'%(pre)).drop(
                             ['GRIDCODE', 'SOURCEFC'], axis=1)
-        cat.columns = cat.columns[:-1].str.upper().tolist() + ['geometry']                         
+        cat.columns = cat.columns[:-1].str.upper().tolist() + ['geometry']
         vaa = dbf2DF('%s/NHDPlusAttributes/PlusFlowlineVAA.dbf'%(pre))[['COMID',
                                                                         'HYDROSEQ']]
         # merge all necessary NHD tables
@@ -829,12 +722,12 @@ def NHDtblMerge(nhd, bounds, out):
                            suffixes=('_wb','_cat'))
         final = pd.merge(final,vaa,left_on='COMID_cat',
                            right_on='COMID',how='left')
-                           
-        # initialize containers for on-net lakes                   
+
+        # initialize containers for on-net lakes
         cols = ['catCOMID','wbCOMID','CatAreaSqKm']
         onNetDF = pd.DataFrame(columns=cols)
         catDict = {} # holds associated lake catchments to an on-network lake
-        
+
         # group by the waterbody COMID to find associated catchment
         for name, group in final.groupby('COMID_wb'):
             if not pd.isnull(group.FEATUREID).any():
@@ -845,9 +738,9 @@ def NHDtblMerge(nhd, bounds, out):
                 catDict[int(base.COMID_cat)] = group.FEATUREID.astype(int).tolist()
         # hold length of on-net lakes
         ttl_ON = len(onNetDF)
-        # add in related sinks -- this could be done in tables and found in 
+        # add in related sinks -- this could be done in tables and found in
         # groupby object above, but this allows for isolation of number added
-        sinks = gpd.read_file("%s/NHDPlusBurnComponents/Sink.shp"%(pre))   
+        sinks = gpd.read_file("%s/NHDPlusBurnComponents/Sink.shp"%(pre))
         exp = '(SOURCEFC== "NHDWaterbody")&(PURPDESC== "NHDWaterbody closed lake")'
         if len(sinks) > 0:
             sinks = sinks.query(exp)
@@ -870,16 +763,16 @@ def NHDtblMerge(nhd, bounds, out):
         else:
            ttl_SINK = len(sinks)  # get val if no sinks for QA
 
-        # create numpy arrays for connected catchments to waterbody            
-        allLinkd = map(lambda x: catDict[x], catDict.keys())    
+        # create numpy arrays for connected catchments to waterbody
+        allLinkd = map(lambda x: catDict[x], catDict.keys())
         onNet_connect[zone] = {'comids':np.array(catDict.keys()),
                         'lengths':np.array([len(v) for v in allLinkd]),
                         'upstream':np.int32(np.hstack(np.array(allLinkd)))}
-                                                
+
         # write-out table of catchment-lake COMID connections
         onNetDF.to_csv("%s/joinTables/join_%s.csv" % (out, zone), index=False)
         offLks = wbShp.ix[~wbShp.COMID.isin(onNetDF.wbCOMID)].copy()
-        ons = ons + onNetDF.wbCOMID.tolist()        
+        ons = ons + onNetDF.wbCOMID.tolist()
         # find off-netowrk lakes that are out-of-bounds
         vpu = vpus.query("UnitID == '%s'" % zone)
         offCen = offLks.copy()
@@ -895,13 +788,13 @@ def NHDtblMerge(nhd, bounds, out):
         unit = sjoin(outCen, vpus, op='within')[['COMID','UnitID']]
         out_of_bounds = out_of_bounds.merge(unit, how='left', on='COMID')
         # add out-of-bounds to GeoDF to hold all, and select only lakes within
-        # the vpu 
+        # the vpu
         Obounds = pd.concat([Obounds,out_of_bounds])
-#        Obounds = gpd.GeoDataFrame( pd.concat([Obounds,out_of_bounds], 
+#        Obounds = gpd.GeoDataFrame( pd.concat([Obounds,out_of_bounds],
 #                                              ignore_index=True) )
         offLks = offLks.ix[offLks.COMID.isin(lkVPUjoin.COMID)].copy()
-        
-        ttl_OOB = len(out_of_bounds)        
+
+        ttl_OOB = len(out_of_bounds)
         ttl_OFF = len(offLks)
         # add VPU info to offLks table
         offLks['VPU_orig'] = zone
@@ -912,12 +805,12 @@ def NHDtblMerge(nhd, bounds, out):
         qa_tbl[zone] = [ttl_WB,ttl_ON,ttl_OFF,ttl_FTYPE,ttl_SINK,ttl_OOB]
     # write-out all zone DF's and the numpy files created to
     assert Obounds.crs == {'init': u'epsg:4269'}
-    # remove lakes out of bounds that would be off-network from that zone, but 
+    # remove lakes out of bounds that would be off-network from that zone, but
     # were established as on-net in the zone they exist
     # 02/04 : coms 15516920, 15516922 NHD Problem.....again
-    Obounds = Obounds.ix[~Obounds.COMID.isin(ons)] 
+    Obounds = Obounds.ix[~Obounds.COMID.isin(ons)]
     Obounds.to_file("%s/out_of_bounds.shp" % out)
-    np.savez_compressed('%s/LakeCat_npy/onNet_LakeCat.npz' % (out), 
+    np.savez_compressed('%s/LakeCat_npy/onNet_LakeCat.npz' % (out),
                         vpus=onNet_connect)
     qa_tbl.index = qa_cols
     qa_tbl.T.index.rename('VPU', inplace=True)
@@ -930,10 +823,10 @@ def NHDtblMerge(nhd, bounds, out):
 def makeBasins(nhd, bounds, out):
     '''
     __author__ =  "Rick Debbout <debbout.rick@epa.gov>"
-    
+
     Makes GeoDataFrame of all lakes within each raster processing unit, converts
     each to raster, and then draws watershed basins for each lake identified as
-    off-network. Creates flow table for all adjacent lake basin boundaries to 
+    off-network. Creates flow table for all adjacent lake basin boundaries to
     identify zones that have hydrological connectivity.
 
     Arguments
@@ -941,31 +834,31 @@ def makeBasins(nhd, bounds, out):
     nhd        : string value of prefix to NHD directory
     bounds     : GeoDataFrame of Vector Processing Unit boundaries
     out        : directory to write out to
-    '''    
-    problems = pd.DataFrame()  # holding for overdrawn basin delineations, 
+    '''
+    problems = pd.DataFrame()  # holding for overdrawn basin delineations,
                                # i.e. bigger watershed than respective catchment
     allOff = gpd.GeoDataFrame(crs={'init': u'epsg:4269'}) # concat for all lakes
     allBsns = gpd.GeoDataFrame() # concat for shpfile of all basins(PointInPoly)
     runit = bounds.query("UnitType == 'RPU'").copy() # GeoDF of RPU bounds only
-    Obounds = gpd.read_file("%s/out_of_bounds.shp" % out) # lakes found out of 
+    Obounds = gpd.read_file("%s/out_of_bounds.shp" % out) # lakes found out of
                                                   # their respective hydroregion
-    arcpy.env.workspace = "%s/rasters/lakes/scratchArc" % out 
+    arcpy.env.workspace = "%s/rasters/lakes/scratchArc" % out
     arcpy.env.outputCoordinateSystem = fiftyseventy # output crs in ESRI WKT
     cols = ['VPU','out_of_raster']
     addOut = pd.DataFrame(columns=cols) # DF to hold no. of lakes not in raster
                                         # for QA table
-    #countTbl = pd.DataFrame() # concat for all RAT info into csv 
+    #countTbl = pd.DataFrame() # concat for all RAT info into csv
     flow_tbl = pd.DataFrame() # concat for all flow tables into one csv
     uid = 1000
-    for zone in inputs:        
-        print zone
+    for zone in inputs:
+        print(zone)
         hr = inputs[zone]
         pre = "%s/NHDPlus%s/NHDPlus%s" % (nhd, hr, zone)
         # get the lakes that were out-of-bounds into the correct vpu
         addLks = Obounds.ix[Obounds.UnitID == zone].copy()
         offLks = gpd.read_file("%s/off_net_%s.shp" % (out, zone))
-        # remove duplicated lakes across zones        
-        addLks.drop(addLks.loc[addLks.COMID.isin(offLks.COMID)].index,inplace=True)            
+        # remove duplicated lakes across zones
+        addLks.drop(addLks.loc[addLks.COMID.isin(offLks.COMID)].index,inplace=True)
         # add back-in lakes that are in other zones
         offLks = pd.concat([offLks,addLks]).reset_index(drop=True)
 
@@ -988,7 +881,7 @@ def makeBasins(nhd, bounds, out):
             lakes.drop_duplicates('COMID', inplace=True) # filter out duplicated
             ln = len(lakes)
             lakes['UID'] = range(uid,uid+ln)
-            uid += ln            
+            uid += ln
             lakes.to_file('%s/rasters/lakes/scratchArc/rasPrep_%s.shp' % (out, rpu))
             fdr = arcpy.sa.Raster("%s/NHDPlusFdrFac%s/fdr" % (pre, rpu))
             arcpy.env.extent = fdr.extent
@@ -996,7 +889,7 @@ def makeBasins(nhd, bounds, out):
             p2r('%s/rasters/lakes/scratchArc/rasPrep_%s.shp' % (out, rpu),'UID',
                 "%s/rasters/lakes/lakes_%s.tif" % (out, rpu),"CELL_CENTER",'',30)
             purge('%s/rasters/lakes/scratchArc' % out, 'rasPrep_%s' % rpu)
-            
+
             outWshed = Watershed("%s/NHDPlusFdrNull%s/fdrnull" % (pre, rpu),
                                  "%s/rasters/lakes/lakes_%s.tif" % (out, rpu),
                                   "VALUE")
@@ -1011,7 +904,7 @@ def makeBasins(nhd, bounds, out):
             bsnShps.crs = ref
             bsnShps['UID'] = bsnShps.index
             bsnShps['AreaSqKM'] = bsnShps['geometry'].area/ 10**6
-            # build raster attribute table, 
+            # build raster attribute table,
             rat = makeRat("%s/rasters/wsheds/wtshds_%s.tif"%(out,rpu))
             rat.columns = rat.columns.str.upper()
             rat.rename(columns={'VALUE':'UID','COUNT':'BSN_COUNT'},inplace=True)
@@ -1020,29 +913,29 @@ def makeBasins(nhd, bounds, out):
             bsnShps = bsnShps.merge(lakes[['COMID','UID']],on='UID')
             bsnShps = bsnShps[['COMID','UID','BSN_COUNT','AreaSqKM','RPU','geometry']]
             bsnShps.to_file(shpOut)
-            allBsns = pd.concat([allBsns,bsnShps])            
+            allBsns = pd.concat([allBsns,bsnShps])
             # hold VALUE/COUNT in csv for processing
             #countTbl = pd.concat([countTbl,rat])
             # find number of lakes that don't get represented in raster, size/duplicated
             ttl_LOST += (len(lakes) - len(rat))
             # write out dbf for reference
-#            DF2dbf(rat, "%s/rasters/wsheds/wtshds_%s.tif.vat.dbf"%(out,rpu), 
+#            DF2dbf(rat, "%s/rasters/wsheds/wtshds_%s.tif.vat.dbf"%(out,rpu),
 #                                       my_specs=[('N', 10, 0), ('N', 10, 0)])
             centroids = lakes.to_crs({'init': u'epsg:4269'}).copy().drop(
                                                             'AREASQKM',axis=1)
             centroids.geometry = centroids.centroid
             if 12691112 in centroids.COMID.values:
-                print centroids.ix[centroids.COMID == 12691112].geometry
+                print(centroids.ix[centroids.COMID == 12691112].geometry)
             lkCat = sjoin(centroids, cat, op='intersects', how='left')
-            lkCat.columns = lkCat.columns.str.upper()           
+            lkCat.columns = lkCat.columns.str.upper()
             # add assoc. cats and areas to off-net lakes ----------------------
             lakes = lakes.to_crs({'init': u'epsg:4269'}).copy()
             lakes = lakes.merge(lkCat[['COMID','FEATUREID','AREASQKM']].rename(
                                 columns={'FEATUREID':'catCOMID',
-                                         'AREASQKM':'catAREASQKM'}), 
+                                         'AREASQKM':'catAREASQKM'}),
                                 on='COMID')
             # may be a problem coming out of the spatial join above w/ assoc. cat
-            allOff = pd.concat([allOff,lakes.copy()])           
+            allOff = pd.concat([allOff,lakes.copy()])
             # compare basin sizes ---------------------------------------------
             both = pd.merge(lkCat[['COMID','UID','FEATUREID','AREASQKM']], rat,
                             how='inner', on='UID')
@@ -1050,16 +943,16 @@ def makeBasins(nhd, bounds, out):
             bigs = both.ix[both.AREASQKM < both.AreaSqKM_basin].copy()
             bigs['diff'] = abs(bigs.AREASQKM - bigs.AreaSqKM_basin)
             bigs['VPU'] = zone
-            bigs['RPU'] = rpu            
+            bigs['RPU'] = rpu
             problems = pd.concat([problems,bigs], ignore_index=True)  # pd.DF
-            flow_rpu = findFlows("%s/rasters/wsheds/wtshds_%s.tif"%(out,rpu), 
+            flow_rpu = findFlows("%s/rasters/wsheds/wtshds_%s.tif"%(out,rpu),
                                  "%s/NHDPlusFdrFac%s/fdr" % (pre, rpu))
-            flow_rpu['RPU'] = rpu        
+            flow_rpu['RPU'] = rpu
             flow_tbl = pd.concat([flow_tbl, flow_rpu])  # pd.DF
         # add the number of COMIDs that get lost in raster creation i.e. too small/overlap
         row = pd.Series([zone, ttl_LOST], index=cols)
         addOut = addOut.append(row, ignore_index=True)
-    # write-out lakes that have a larger watershed 
+    # write-out lakes that have a larger watershed
     # than their containing catchment
     #countTbl.to_csv("%s/LakeCat_RasterCounts.csv" % out,index=False) # this can be merged w/ allBasin.shp file
     flow_tbl.to_csv("%s/LakeCat_npy/LakeCat_PlusFlow.csv" % out,index=False)
@@ -1067,7 +960,7 @@ def makeBasins(nhd, bounds, out):
     allOff.to_crs(offLks.crs,inplace=True)
     allOff.to_file("%s/off-network.shp" % out)
     addOut.loc[len(addOut)] = pd.Series(
-                                        ['TOTALS', 
+                                        ['TOTALS',
                                          addOut['out_of_raster'].sum()],
                                          index=cols)
     qa_tbl = pd.read_csv("%s/Lake_QA.csv" % out)
@@ -1081,14 +974,14 @@ def makeBasins(nhd, bounds, out):
 def makeNParrays(loc):
     '''
     __author__ =  "Rick Debbout <debbout.rick@epa.gov>"
-    Creates numpy arrays for LakeCat, uses a 'PlusFlow' table with 
-    TOCOMID/FROMCOMID fields along with a shapefile dbf that holds all 
+    Creates numpy arrays for LakeCat, uses a 'PlusFlow' table with
+    TOCOMID/FROMCOMID fields along with a shapefile dbf that holds all
     of the unique id values that were used to check for connections.
 
     Arguments
     ---------
     loc        : location of LakeCat output directory
-    ''' 
+    '''
     flow = pd.read_csv("%s/LakeCat_npy/LakeCat_PlusFlow.csv" % loc)
     fcom,tcom = flow.FROMCOMID.values,flow.TOCOMID.values
     UpCOMs = defaultdict(list)
@@ -1098,29 +991,29 @@ def makeNParrays(loc):
             UpCOMs[tcom[i]] = []
         else:
             UpCOMs[tcom[i]].append(FROMCOMID)
-    # get unique IDs from shapefile dbf    
+    # get unique IDs from shapefile dbf
     tbl = dbf2DF('%s/off-network.dbf' % loc)
     coms = tbl.UID.values
     d = '%s/LakeCat_npy' % loc
     if not os.path.exists(d + '/bastards'):
         os.mkdir(d + '/bastards')
-        os.mkdir(d + '/children')     
+        os.mkdir(d + '/children')
     # create bastard arrays
     a = map(lambda x: bastards(x, UpCOMs), coms)
     lengths = np.array([len(v) for v in a])
     a = np.int32(np.hstack(np.array(a)))    #Convert to 1d vector
-    np.savez_compressed('%s/bastards/accum.npz' % (d), comids=coms,lengths=lengths,upstream=a)   
-    # create children arrays    
+    np.savez_compressed('%s/bastards/accum.npz' % (d), comids=coms,lengths=lengths,upstream=a)
+    # create children arrays
     a = map(lambda x: children(x, UpCOMs), coms)
     lengths = np.array([len(v) for v in a])
     a = np.int32(np.hstack(np.array(a)))    # Convert to 1d vector
     np.savez_compressed('%s/children/accum.npz' % (d), comids=coms,lengths=lengths,upstream=a)
-    
+
 ##############################################################################
 
 
 def main (nhd, out):
-    
+
     if not os.path.exists("%s/rasters" % out):
         if not os.path.exists(out):
             os.mkdir(out)
@@ -1145,7 +1038,7 @@ def main (nhd, out):
 
 
 if __name__=='__main__':
-    if len(sys.argv) == 1: 
+    if len(sys.argv) == 1:
         nhd_dir = askdirectory(title='Select the location of NHDPlusv21:',
                                                                initialdir='.')
         q = 'Select the location where you want LakeCat data written:'
@@ -1155,22 +1048,22 @@ if __name__=='__main__':
         out_dir = sys.argv[2]
 
     main(nhd_dir, out_dir)
-    
+
 ##############################################################################
 def onNetZone(x, here=r'D:\Projects\LKCAT_frame\joinTables'):
     for f in os.listdir(here):
-        print f
+        print(f)
         tbl = pd.read_csv('%s/%s' % (here,f))
         if x in tbl.wbCOMID.values:
-            print f.split('.')[0].split('_')[-1]
-            print tbl.ix[tbl.wbCOMID == x]
-            
+            print(f.split('.')[0].split('_')[-1])
+            print(tbl.ix[tbl.wbCOMID == x])
+
 # Unused functions, but would be useful for creating flexibility w/ new datasets
 
 #def makeVPUdict(directory):
 #    '''
 #    __author__ =  "Rick Debbout <debbout.rick@epa.gov>"
-#    Creates an OrderdDict for looping through regions of the NHD to carry InterVPU 
+#    Creates an OrderdDict for looping through regions of the NHD to carry InterVPU
 #    connections across VPU zones
 #
 #    Arguments
@@ -1199,7 +1092,7 @@ def onNetZone(x, here=r'D:\Projects\LKCAT_frame\joinTables'):
 #    directory             : the directory contining NHDPlus data at the top level
 #    '''
 #    B = dbf2DF('%s/NHDPlusGlobalData/BoundaryUnit.dbf' % directory)
-#    B = B.drop(B.ix[B.DRAINAGEID.isin(['HI','CI'])].index, axis=0)      
+#    B = B.drop(B.ix[B.DRAINAGEID.isin(['HI','CI'])].index, axis=0)
 #    rpuinputs = OrderedDict()
 #    for idx, row in B.iterrows():
 #        if row.UNITTYPE == 'RPU':
@@ -1212,7 +1105,7 @@ def onNetZone(x, here=r'D:\Projects\LKCAT_frame\joinTables'):
 #                        break
 #            if not zone in rpuinputs.keys():
 #                rpuinputs[zone] = []
-#            print 'RPU: ' + rpu + ' in zone: ' + zone 
+#            print 'RPU: ' + rpu + ' in zone: ' + zone
 #            rpuinputs[zone].append(row.UNITID)
 #    np.save('%s/StreamCat_npy/rpuInputs.npy' % directory, rpuinputs)
 #    return rpuinputs
@@ -1227,24 +1120,24 @@ def onNetZone(x, here=r'D:\Projects\LKCAT_frame\joinTables'):
 #    ---------
 #    directory             : the directory contining NHDPlus data at the top level
 #    unit                  : Vector or Raster processing units 'VPU' or 'RPU'
-#    '''  
+#    '''
 #    if unit == 'VPU':
 #        if not os.path.exists('%s/StreamCat_npy' % directory):
-#            os.mkdir('%s/StreamCat_npy' % directory)    
+#            os.mkdir('%s/StreamCat_npy' % directory)
 #        if not os.path.exists('%s/StreamCat_npy/zoneInputs.npy' % directory):
 #            inputs = makeVPUdict(directory)
 #        else:
-#            inputs = np.load('%s/StreamCat_npy/zoneInputs.npy' % directory).item() 
+#            inputs = np.load('%s/StreamCat_npy/zoneInputs.npy' % directory).item()
 #    if unit == 'RPU':
 #        if not os.path.exists('%s/StreamCat_npy' % directory):
-#            os.mkdir('%s/StreamCat_npy' % directory)    
+#            os.mkdir('%s/StreamCat_npy' % directory)
 #        if not os.path.exists('%s/StreamCat_npy/rpuInputs.npy' % directory):
 #            inputs = makeRPUdict(directory)
 #        else:
-#            inputs = np.load('%s/StreamCat_npy/rpuInputs.npy' % directory).item() 
+#            inputs = np.load('%s/StreamCat_npy/rpuInputs.npy' % directory).item()
 #    return inputs
 ###############################################################################
-#    
+#
 #def createAccumTable(table, d, tbl_type, icol='COMID', zone=""):
 #    '''
 #    __author__ =  "Marc Weber <weber.marc@epa.gov>"
@@ -1261,7 +1154,7 @@ def onNetZone(x, here=r'D:\Projects\LKCAT_frame\joinTables'):
 #    '''
 #    tbl_type = 'Ws' if d.split('/')[-1] == 'children' else 'UpCat'
 #    accum = np.load('%s/accum_%s.npz' % (d, zone))
-#    add = Accumulation(table, accum['comids'], accum['lengths'], accum['upstream'], tbl_type, icol)    
+#    add = Accumulation(table, accum['comids'], accum['lengths'], accum['upstream'], tbl_type, icol)
 #    return add
 #
 ###############################################################################
@@ -1284,7 +1177,7 @@ def onNetZone(x, here=r'D:\Projects\LKCAT_frame\joinTables'):
 #    comids = a.item()[zone]['comids']
 #    lengths= a.item()[zone]['lengths']
 #    upstream = a.item()[zone]['upstream']
-#    add = Accumulation(table, comids, lengths, upstream, tbl_type, 'COMID')    
+#    add = Accumulation(table, comids, lengths, upstream, tbl_type, 'COMID')
 #    return add
 #
 #
