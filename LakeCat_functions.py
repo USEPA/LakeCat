@@ -100,7 +100,10 @@ fiftyseventy = "PROJCS['NAD_1983_Albers',\
 
 
 def dbf2DF(f, upper=True):
-    pass
+    data = gpd.read_file(f).drop("geometry", axis=1)
+    if upper is True:
+        data.columns = data.columns.str.upper()
+    return pd.DataFrame(data)
 
 
 def Accumulation(arr, COMIDs, lengths, upStream, tbl_type, icol):
