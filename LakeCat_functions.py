@@ -9,8 +9,8 @@ Created on Tue May 31 15:22:43 2016
 import os
 import re
 import sys
-import arcpy
-# import warnings
+import warnings
+from datetime import datetime as dt
 import numpy as np
 import pandas as pd
 import rasterio as rs
@@ -21,14 +21,21 @@ import geopandas as gpd
 #from rasterio.crs import CRS
 #from rasterio import features
 from itertools import chain
-from arcpy.sa import Watershed
 from geopandas.tools import sjoin
+from collections import deque, OrderedDict, defaultdict
+
+os.environ["PATH"] = r"{};{}".format(os.environ["PATH"], 
+                                     r"C:\Program Files\ArcGIS\Pro\bin")
+sys.path.append(r"C:\Program Files\ArcGIS\Pro\Resources\ArcPy")
+import arcpy
+from arcpy.sa import Watershed
+from arcpy.sa import ZonalStatisticsAsTable, TabulateArea
 from arcpy import PolygonToRaster_conversion as p2r
 from arcpy import RasterToPolygon_conversion as r2p
-from collections import deque, OrderedDict, defaultdict
-from lake_cat_config import NHD_DIR
-arcpy.CheckOutExtension("spatial")
-# warnings.filterwarnings("ignore", category=FutureWarning)
+
+from lake_cat_config import OUT_DIR, NHD_DIR, LYR_DIR, STREAMCAT_DIR
+
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 ##############################################################################
 
 inputs = OrderedDict([('06', 'MS'),
@@ -101,7 +108,131 @@ def dbf2DF(f, upper=True):
     data = gpd.read_file(f).drop("geometry", axis=1)
     if upper is True:
         data.columns = data.columns.str.upper()
-    return pd.DataFrame(data)
+    return data
+
+def doStats(OUT_DIR, LYR_DIR, NHD_DIR):
+    arcpy.CheckOutExtension("spatial")
+    arcpy.env.cellSize = "30"
+
+    if not os.path.exists(OUT_DIR):
+        os.mkdir(OUT_DIR)
+    if not os.path.exists(f"{OUT_DIR}/ZStats"):
+        os.mkdir(f"{OUT_DIR}/ZStats")
+
+    ctl = pd.read_csv(r"ControlTable_LakeCat.csv")
+
+    for _, row in ctl.query("run == 1").iterrows():
+
+        print(f"running....{row.FullTableName}")
+
+        LLyr = f"{LYR_DIR}/{row.LandscapeLayer}"
+        ddir = f"{OUT_DIR}/ZStats/{row.FullTableName}"
+        if not os.path.exists(ddir) and row.accum_type != "Point":
+            os.mkdir(ddir)
+        summaryfield = None
+        if type(row.summaryfield) == str:
+            summaryfield = row.summaryfield.split(";")
+        start = dt.now()
+
+        if row.accum_type != "Point":
+            csv = f"{OUT_DIR}/ZStats/{row.FullTableName}.csv"
+            stats = pd.DataFrame()
+            for zone, hr in inputs.items():
+                pre = f"{NHD_DIR}/NHDPlus{hr}/NHDPlus{zone}"
+                for rpu in rpus[zone]:
+                    if row.MetricName == "Elev":
+                        LLyr = f"{pre}/NEDSnapshot/Ned{rpu}/{row.LandscapeLayer}"
+                    out = f"{OUT_DIR}/ZStats/{row.FullTableName}/{row.FullTableName}_{rpu}.dbf"
+                    if not os.path.exists(out):
+                        raster = f"framework/rasters/wsheds/wtshds_{rpu}.tif"
+                        if row.accum_type == "Categorical":
+                            TabulateArea(raster, "Value", LLyr, "Value",
+                                         out, "30")
+                        if row.accum_type == "Continuous":
+                            ZonalStatisticsAsTable(raster, "Value", LLyr,
+                                                   out, "DATA", "ALL")
+                    tbl = dbf2DF(out)
+                    tbl.rename(columns={"VALUE":"UID"},inplace=True)
+                    stats = pd.concat([stats, tbl])
+            stats.UID = stats.UID.astype(np.int64)
+            stats.to_csv(csv, index=False)
+
+        if row.accum_type == "Point":
+
+            pct_full = pd.read_csv("framework/border/pct_full.csv")
+            points = gpd.GeoDataFrame.from_file(LLyr)
+            basins = "framework/shps/allBasins.shp"
+            stats = PointInPoly(points, basins, pct_full, "UID", summaryfield)
+
+        print("ZonalStats Results Complete in : " + str(dt.now() - start))
+
+        if row.accum_type != "Point":
+            b = pd.DataFrame()
+            for zone in rpus.keys():
+                for rpu in rpus[zone]:
+                    b_ = dbf2DF(f"framework/rasters/wsheds/wtshds_{rpu}.tif.vat.dbf")
+                    b_["BSNAREASQKM"] = (b_.COUNT * 900) * 1e-6
+                    b_ = b_[["VALUE", "BSNAREASQKM", "COUNT"]]
+                    b_.columns = ["UID", "AreaSqKm", "COUNT"]
+                    b = pd.concat([b,b_])
+
+        if row.accum_type == "Categorical":
+            stats = chkColumnLength(stats,LLyr)
+            cols = stats.columns.tolist()[1:]
+            stats["AREA"] = stats[stats.columns.tolist()[1:]].sum(axis=1)
+            stats = pd.merge(b, stats, how="left", on="UID")
+            stats["PctFull"] = (((stats.AREA * 1e-6) / stats.AreaSqKm) * 100)
+            stats = stats[["UID", "AreaSqKm"] + cols + ["PctFull"]]
+            cols = stats.columns[1:]
+            stats.columns = np.append("UID", "Cat" + cols.values)
+            stats = stats.fillna(0)
+
+        if row.accum_type == "Continuous":
+            stats = pd.merge(b, stats, how="left", on="UID")
+            stats["CatPctFull"] = ((stats.COUNT_y / stats.COUNT_x) * 100)
+            if row.FullTableName == "Elev":
+                stats = stats[["UID","AreaSqKm","COUNT_x","SUM",
+                               "MAX", "MIN", "CatPctFull"]]
+                stats.columns = ["UID", "CatAreaSqKm", "CatCount", "CatSum",
+                                 "CatMax", "CatMin", "CatPctFull"]
+            else:
+                stats = stats[["UID","AreaSqKm","COUNT_x","SUM", "CatPctFull"]]
+                stats.columns = ["UID", "CatAreaSqKm", "CatCount",
+                                 "CatSum", "CatPctFull"]
+            stats.CatPctFull = stats.CatPctFull.fillna(0)
+        start2 = dt.now()
+        npy = "framework/LakeCat_npy"
+        accum = np.load("%s/bastards/accum.npz" % npy)
+        up = Accumulation(stats, accum["comids"],
+                               accum["lengths"],
+                               accum["upstream"],
+                               "UpCat","UID")
+        accum = np.load("%s/children/accum.npz" % npy)
+        ws = Accumulation(stats, accum["comids"],
+                               accum["lengths"],
+                               accum["upstream"],
+                               "Ws","UID")
+        stats = pd.merge(stats, up, on="UID")
+        stats = pd.merge(stats, ws, on="UID")
+        cols = stats.columns[1:].tolist()
+        # goto StreamCat to get On-Net-work lake results from assoc. COMIDs
+        stats["inStreamCat"] = 0
+        # Join UID to COMID for final deliverable
+
+        lks = dbf2DF("framework/off-network.dbf")[["COMID","UID"]]
+
+        off = pd.merge(lks,stats,on="UID",how="right")
+        off.drop("UID",axis=1,inplace=True)
+        on = getOnNetLakes2(row.FullTableName, STREAMCAT_DIR,
+                               "framework/joinTables",
+                               f"{npy}/onNet_LakeCat.npz",
+                               NHD_DIR)
+        on["inStreamCat"] = 1
+        print("Length of on_Net: " + str(len(on)))
+        tot = pd.concat([off, on])
+        tot.to_csv(f"{OUT_DIR}/{row.FullTableName}.csv", index=False)
+        print("Accumulation Results Complete in : " + str(dt.now() - start2))
+
 
 
 def Accumulation(arr, COMIDs, lengths, upStream, tbl_type, icol):
@@ -132,7 +263,7 @@ def Accumulation(arr, COMIDs, lengths, upStream, tbl_type, icol):
         c = np.array(arr[col]) # arr[col].fillna(0) keep out zeros where no data!
         d = c[indices] #Make final vector from desired data (c)
         if 'PctFull' in col:
-            area = np.array(arr.loc[:, 1])
+            area = np.array(arr.iloc[:, 1])
             ar = area[indices]
             x = 0
             for i in range(0, len(lengths)):
@@ -148,7 +279,7 @@ def Accumulation(arr, COMIDs, lengths, upStream, tbl_type, icol):
     outT = outT[np.in1d(outT[:,0], coms),:]  #Remove the extra COMIDs
     outDF = pd.DataFrame(outT)
     if tbl_type == 'Ws':
-        outDF.columns = np.append(icol, map(lambda x : x.replace('Cat', 'Ws'),cols.values))
+        outDF.columns = np.append(icol, list(map(lambda x : x.replace('Cat', 'Ws'),cols.values)))
     elif tbl_type == 'UpCat':
         outDF.columns = np.append(icol, 'Up' + cols.values)
     else:
@@ -373,7 +504,7 @@ def getOnNetLakes2(metric, StreamCat, LakeComs, npy_files, nhd):
 #            strmCat = strmCat.drop([x for x in strmCat.columns if 'MAX' in x or 'MIN' in x], axis=1)
         cols = [col for col in strmCat.columns if col[:3] =='Cat']
         iso = strmCat[['COMID'] + cols]
-        accum = np.load(npy_files)['vpus'].item()[zone]
+        accum = np.load(npy_files, allow_pickle=True)['vpus'].item()[zone]
         accumCats = Accumulation(iso, accum['comids'],
                                 accum['lengths'],
                                 accum['upstream'],
@@ -990,12 +1121,6 @@ def main (nhd, out):
         NHDtblMerge(nhd, NHDbounds, out)
     makeBasins(nhd, NHDbounds, out)
     makeNParrays('%s' % out)
-##############################################################################
-
-
-if __name__=='__main__':
-    print("under main", NHD_DIR)
-    main(NHD_DIR, "framework")
 
 ##############################################################################
 def onNetZone(x, here=r'D:\Projects\LKCAT_frame\joinTables'):
