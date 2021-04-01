@@ -16,24 +16,9 @@ import pandas as pd
 
 from border import makeBrdrPctFile
 from lake_cat_config import LYR_DIR, NHD_DIR, OUT_DIR, STREAMCAT_DIR
-from LakeCat_functions import (
-    Accumulation,
-    NHDtblMerge,
-    PointInPoly,
-    chkColumnLength,
-    doStats,
-    getOnNetLakes2,
-    inputs,
-    makeBasins,
-    makeNParrays,
-    rpus,
-)
-
-os.environ["PATH"] = r"{};{}".format(
-    os.environ["PATH"], r"C:\Program Files\ArcGIS\Pro\bin"
-)
-sys.path.append(r"C:\Program Files\ArcGIS\Pro\Resources\ArcPy")
-import arcpy
+from LakeCat_functions import (Accumulation, NHDtblMerge, PointInPoly,
+                               chkColumnLength, doStats, getOnNetLakes, inputs,
+                               makeBasins, makeNParrays, rpus)
 
 if __name__ == "__main__":
 
@@ -51,7 +36,6 @@ if __name__ == "__main__":
             os.mkdir(f"{out}/joinTables")
             os.mkdir(f"{out}/LakeCat_npy")
 
-        print(os.path.exists(f"{NHD_DIR}/NHDPlusGlobalData/BoundaryUnit.shp"))
         NHDbounds = gpd.read_file(
             f"{NHD_DIR}/NHDPlusGlobalData/BoundaryUnit.shp"
         ).to_crs(epsg="5070")
