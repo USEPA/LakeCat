@@ -79,7 +79,7 @@ for table, metrics in tables.items():
                         fnlname1 = f"{metricName}{sname}Cat{a_m}"
                         fnlname2 = f"{metricName}{sname}Ws{a_m}"
                         tbl[fnlname1] = tbl[f"Cat{sname}"] / (tbl[catArea] * (tbl[catPct]/100))
-                        tbl[fnlname2] = tbl[f"Ws{sname"] / (tbl[wsArea] * (tbl[wsPct]/100))
+                        tbl[fnlname2] = tbl[f"Ws{sname}"] / (tbl[wsArea] * (tbl[wsPct]/100))
                         finalNameList.append(fnlname1)
                         finalNameList.append(fnlname2)
                 if table == "RoadStreamCrossings" or table == "CanalsDitches":
