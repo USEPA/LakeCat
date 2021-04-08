@@ -109,10 +109,10 @@ fiftyseventy = "PROJCS['NAD_1983_Albers',\
 
 
 def dbf2DF(f, upper=True):
-    data = gpd.read_file(f).drop("geometry", axis=1)
+    data = gpd.read_file(f).drop("geometry", axis=1, errors="ignore")
     if upper is True:
         data.columns = data.columns.str.upper()
-    return data
+    return pd.DataFrame(data)
 
 
 def doStats(OUT_DIR, LYR_DIR, NHD_DIR):
