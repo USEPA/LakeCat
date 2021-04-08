@@ -51,7 +51,7 @@ def dissolveStates(f, nm):
     sts['dissolve'] = 1
     conus = sts.dissolve(by='dissolve')
     conus = conus[[nm,'geometry']].copy()
-    conus.loc[conus.index[0]][nm] = 'CONUS'
+    conus.loc[conus.index[0], nm] = 'CONUS'
     return conus
 
 def brdrPctFull(zns, brdr, ncol, acol='AreaSqKM'):
@@ -107,7 +107,10 @@ def makeBrdrPctFile(b_file, z_file, b_field, z_field):
     return final
         
 if __name__ == '__main__':
-    
+
+    # below is the file to download that we use to assess pct full on border
+    # cats/basins
+    # https://www2.census.gov/geo/tiger/TIGER2010/STATE/2010/tl_2010_us_state10.zip
     us_file = 'L:/Priv/CORFiles/Geospatial_Library/Data/RESOURCE/POLITICAL/BOUNDARIES/NATIONAL/TIGER_2010_State_Boundaries.shp'
     lake_basins = 'D:/Projects/Frame_NULL/shps/allBasins.shp'
     here = 'D:/Projects/Frame_NULL/border'
