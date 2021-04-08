@@ -15,26 +15,23 @@ import numpy as np
 import pandas as pd
 
 from border import makeBrdrPctFile
-from lake_cat_config import LYR_DIR, NHD_DIR, OUT_DIR, STREAMCAT_DIR
+from lake_cat_config import LYR_DIR, NHD_DIR, OUT_DIR, STREAMCAT_DIR, FRAMEWORK
 from LakeCat_functions import (Accumulation, NHDtblMerge, PointInPoly,
                                chkColumnLength, doStats, getOnNetLakes, inputs,
                                makeBasins, makeNParrays, rpus)
 
 if __name__ == "__main__":
 
-    out = "framework"
-    if not os.path.exists(out):
+    if not os.path.exists(FRAMEWORK):
         print("making framework")
-        if not os.path.exists(f"{out}/rasters"):
-            if not os.path.exists(out):
-                os.mkdir(out)
-            os.mkdir(f"{out}/rasters")
-            os.mkdir(f"{out}/rasters/lakes")
-            os.mkdir(f"{out}/rasters/lakes/scratchArc")
-            os.mkdir(f"{out}/rasters/wsheds")
-            os.mkdir(f"{out}/shps")
-            os.mkdir(f"{out}/joinTables")
-            os.mkdir(f"{out}/LakeCat_npy")
+        os.mkdir(FRAMEWORK)
+        os.mkdir(f"{FRAMEWORK}/rasters")
+        os.mkdir(f"{FRAMEWORK}/rasters/lakes")
+        os.mkdir(f"{FRAMEWORK}/rasters/lakes/scratchArc")
+        os.mkdir(f"{FRAMEWORK}/rasters/wsheds")
+        os.mkdir(f"{FRAMEWORK}/shps")
+        os.mkdir(f"{FRAMEWORK}/joinTables")
+        os.mkdir(f"{FRAMEWORK}/LakeCat_npy")
 
         NHDbounds = gpd.read_file(
             f"{NHD_DIR}/NHDPlusGlobalData/BoundaryUnit.shp"
@@ -45,17 +42,17 @@ if __name__ == "__main__":
             inplace=True,
         )
 
-        if not os.path.exists(f"{out}/Lake_QA.csv"):
-            NHDtblMerge(NHD_DIR, NHDbounds, out)
-        makeBasins(NHD_DIR, NHDbounds, out)
-        makeNParrays(out)
+        if not os.path.exists(f"{FRAMEWORK}/Lake_QA.csv"):
+            NHDtblMerge(NHD_DIR, NHDbounds, FRAMEWORK)
+        makeBasins(NHD_DIR, NHDbounds, FRAMEWORK)
+        makeNParrays(FRAMEWORK)
         us_file = (
             "L:/Priv/CORFiles/Geospatial_Library_Resource/"
             "POLITICAL/BOUNDARIES/NATIONAL/TIGER_2010_State_Boundaries.shp"
         )
-        bsns = "framework/shps/allBasins.shp"
+        bsns = f"{FRAMEWORK}/shps/allBasins.shp"
         brdr = makeBrdrPctFile(us_file, bsns, "NAME10", "UID")
-        os.mkdir("framework/border")
-        brdr.to_csv("framework/border/pct_full.csv")
+        os.mkdir(f"{FRAMEWORK}/border")
+        brdr.to_csv(f"{FRAMEWORK}/border/pct_full.csv")
 
-    doStats(OUT_DIR, LYR_DIR, NHD_DIR)
+    doStats(OUT_DIR, LYR_DIR, NHD_DIR, FRAMEWORK)

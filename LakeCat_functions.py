@@ -115,7 +115,7 @@ def dbf2DF(f, upper=True):
     return pd.DataFrame(data)
 
 
-def doStats(OUT_DIR, LYR_DIR, NHD_DIR):
+def doStats(OUT_DIR, LYR_DIR, NHD_DIR, FRAMEWORK):
     arcpy.CheckOutExtension("spatial")
     arcpy.env.cellSize = "30"
 
@@ -145,11 +145,15 @@ def doStats(OUT_DIR, LYR_DIR, NHD_DIR):
             for zone, hr in inputs.items():
                 pre = f"{NHD_DIR}/NHDPlus{hr}/NHDPlus{zone}"
                 for rpu in rpus[zone]:
-                    if row.MetricName == "Elev":
+                    if row.FullTableName in ["Elev","Slope"]:
                         LLyr = f"{pre}/NEDSnapshot/Ned{rpu}/{row.LandscapeLayer}"
+                        arcpy.env.snapRaster = LLyr
+                        lr = arcpy.sa.Raster(LLyr)
+                        lr_extent = lr.extent
+                        arcpy.env.extent = lr_extent
                     out = f"{OUT_DIR}/ZStats/{row.FullTableName}/{row.FullTableName}_{rpu}.dbf"
                     if not os.path.exists(out):
-                        raster = f"framework/rasters/wsheds/wtshds_{rpu}.tif"
+                        raster = f"{FRAMEWORK}/rasters/wsheds/wtshds_{rpu}.tif"
                         if row.accum_type == "Categorical":
                             TabulateArea(raster, "Value", LLyr, "Value", out, "30")
                         if row.accum_type == "Continuous":
@@ -175,7 +179,7 @@ def doStats(OUT_DIR, LYR_DIR, NHD_DIR):
             b = pd.DataFrame()
             for zone in rpus.keys():
                 for rpu in rpus[zone]:
-                    b_ = dbf2DF(f"framework/rasters/wsheds/wtshds_{rpu}.tif.vat.dbf")
+                    b_ = dbf2DF(f"{FRAMEWORK}/rasters/wsheds/wtshds_{rpu}.tif.vat.dbf")
                     b_["BSNAREASQKM"] = (b_.COUNT * 900) * 1e-6
                     b_ = b_[["VALUE", "BSNAREASQKM", "COUNT"]]
                     b_.columns = ["UID", "AreaSqKm", "COUNT"]
@@ -195,7 +199,7 @@ def doStats(OUT_DIR, LYR_DIR, NHD_DIR):
         if row.accum_type == "Continuous":
             stats = pd.merge(b, stats, how="left", on="UID")
             stats["CatPctFull"] = (stats.COUNT_y / stats.COUNT_x) * 100
-            if row.FullTableName == "Elev":
+            if row.FullTableName in ["Elev","Slope"]:
                 stats = stats[
                     ["UID", "AreaSqKm", "COUNT_x", "SUM", "MAX", "MIN", "CatPctFull"]
                 ]
@@ -219,12 +223,12 @@ def doStats(OUT_DIR, LYR_DIR, NHD_DIR):
                 ]
             stats.CatPctFull = stats.CatPctFull.fillna(0)
         start2 = dt.now()
-        npy = "framework/LakeCat_npy"
-        accum = np.load(f"{npy}/bastards/accum.npz")
+        npy = "f{FRAMEWORK}/LakeCat_npy"
+        accum = np.load(f"{FRAMEWORK}/LakeCat_npy/bastards/accum.npz")
         up = Accumulation(
             stats, accum["comids"], accum["lengths"], accum["upstream"], "UpCat", "UID"
         )
-        accum = np.load(f"{npy}/children/accum.npz")
+        accum = np.load(f"{FRAMEWORK}/LakeCat_npy/children/accum.npz")
         ws = Accumulation(
             stats, accum["comids"], accum["lengths"], accum["upstream"], "Ws", "UID"
         )
@@ -235,15 +239,15 @@ def doStats(OUT_DIR, LYR_DIR, NHD_DIR):
         stats["inStreamCat"] = 0
         # Join UID to COMID for final deliverable
 
-        lks = dbf2DF("framework/off-network.dbf")[["COMID", "UID"]]
+        lks = dbf2DF(f"{FRAMEWORK}/off-network.dbf")[["COMID", "UID"]]
 
         off = pd.merge(lks, stats, on="UID", how="right")
         off.drop("UID", axis=1, inplace=True)
         on = getOnNetLakes(
             row.FullTableName,
             STREAMCAT_DIR,
-            "framework/joinTables",
-            f"{npy}/onNet_LakeCat.npz",
+            f"{FRAMEWORK}/joinTables",
+            f"{FRAMEWORK}/LakeCat_npy/onNet_LakeCat.npz",
             NHD_DIR,
         )
         on["inStreamCat"] = 1
