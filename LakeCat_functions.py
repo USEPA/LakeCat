@@ -109,10 +109,10 @@ fiftyseventy = "PROJCS['NAD_1983_Albers',\
 
 
 def dbf2DF(f, upper=True):
-    data = gpd.read_file(f).drop("geometry", axis=1)
+    data = gpd.read_file(f).drop("geometry", axis=1, errors="ignore")
     if upper is True:
         data.columns = data.columns.str.upper()
-    return data
+    return pd.DataFrame(data)
 
 
 def doStats(OUT_DIR, LYR_DIR, NHD_DIR, FRAMEWORK):
@@ -145,13 +145,7 @@ def doStats(OUT_DIR, LYR_DIR, NHD_DIR, FRAMEWORK):
             for zone, hr in inputs.items():
                 pre = f"{NHD_DIR}/NHDPlus{hr}/NHDPlus{zone}"
                 for rpu in rpus[zone]:
-                    if row.MetricName == "Elev":
-                        LLyr = f"{pre}/NEDSnapshot/Ned{rpu}/{row.LandscapeLayer}"
-                        arcpy.env.snapRaster = LLyr
-                        lr = arcpy.sa.Raster(LLyr)
-                        lr_extent = lr.extent
-                        arcpy.env.extent = lr_extent
-                    if row.MetricName == "Slope":
+                    if row.FullTableName in ["Elev","Slope"]:
                         LLyr = f"{pre}/NEDSnapshot/Ned{rpu}/{row.LandscapeLayer}"
                         arcpy.env.snapRaster = LLyr
                         lr = arcpy.sa.Raster(LLyr)
@@ -205,7 +199,7 @@ def doStats(OUT_DIR, LYR_DIR, NHD_DIR, FRAMEWORK):
         if row.accum_type == "Continuous":
             stats = pd.merge(b, stats, how="left", on="UID")
             stats["CatPctFull"] = (stats.COUNT_y / stats.COUNT_x) * 100
-            if row.FullTableName == "Elev" or row.FullTableName== "Slope":
+            if row.FullTableName in ["Elev","Slope"]:
                 stats = stats[
                     ["UID", "AreaSqKm", "COUNT_x", "SUM", "MAX", "MIN", "CatPctFull"]
                 ]
