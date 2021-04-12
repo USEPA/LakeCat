@@ -47,11 +47,11 @@ def dissolveStates(f, nm):
             'American Samoa',
             'Puerto Rico',
             'Hawaii']
-    sts = sts.drop(sts.ix[sts[nm].isin(nin)].index)
+    sts = sts.drop(sts.loc[sts[nm].isin(nin)].index)
     sts['dissolve'] = 1
     conus = sts.dissolve(by='dissolve')
-    conus = conus[[nm,'geometry']]
-    conus.ix[conus.index[0]][nm] = 'CONUS'
+    conus = conus[[nm,'geometry']].copy()
+    conus.loc[conus.index[0], nm] = 'CONUS'
     return conus
 
 def brdrPctFull(zns, brdr, ncol, acol='AreaSqKM'):
@@ -65,9 +65,9 @@ def brdrPctFull(zns, brdr, ncol, acol='AreaSqKM'):
     '''
     # move poly to albers, need to stay in this CRS to cal. area later
     if brdr.crs != zns.crs:
-        brdr.to_crs(zns.crs,inplace=True)
-    touch = sjoin(zns,brdr,op='within')
-    nwin = zns.ix[~zns[ncol].isin(touch[ncol])].copy()
+        brdr.to_crs(zns.crs, inplace=True)
+    touch = sjoin(zns, brdr, op='within')
+    nwin = zns.loc[~zns[ncol].isin(touch[ncol])].copy()
     if len(nwin) == 0:
         return pd.DataFrame()    
     tot = pd.DataFrame()
@@ -107,16 +107,19 @@ def makeBrdrPctFile(b_file, z_file, b_field, z_field):
     return final
         
 if __name__ == '__main__':
-    
+
+    # below is the file to download that we use to assess pct full on border
+    # cats/basins
+    # https://www2.census.gov/geo/tiger/TIGER2010/STATE/2010/tl_2010_us_state10.zip
     us_file = 'L:/Priv/CORFiles/Geospatial_Library/Data/RESOURCE/POLITICAL/BOUNDARIES/NATIONAL/TIGER_2010_State_Boundaries.shp'
     lake_basins = 'D:/Projects/Frame_NULL/shps/allBasins.shp'
     here = 'D:/Projects/Frame_NULL/border'
     if not os.path.exists(here):
         os.mkdir(here)
     nhd = 'D:/NHDPlusV21'
-    print 'Making border PctFull csv'
+    print('Making border PctFull csv')
     # LakeCat
     csv = makeBrdrPctFile(us_file, lake_basins, 'NAME10', 'UID')
     # StreamCat
 #    csv = makeBrdrPctFile(us_file, nhd, 'NAME10', 'FEATUREID') 
-    csv.to_csv('%s/pct_full.csv' % here)
+    csv.to_csv(f'{here}/pct_full.csv')

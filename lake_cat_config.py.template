@@ -1,0 +1,35 @@
+
+
+# location of the landscape layers to perform statistics on
+LYR_DIR = 'C:/path/to/landscape/layers'
+
+# path to the framework created for LakeCat
+FRAMEWORK = ("L:/Priv/CORFiles/Geospatial_Library_Projects/LakeCat/"
+             "LakeCat_Framework")
+
+# path to Allocated StreamCat files
+STREAMCAT_DIR = ("L:/Priv/CORFiles/Geospatial_Library_Projects/StreamCat/"
+                 "Allocation_and_Accumulation")
+                 
+# location of the NHDPlus, indicate the top-level directory
+NHD_DIR = 'D:/NHDPlusV21'
+
+# TIGER shapefile is needed for calculaitng the PctFUll values of Point type
+# metrics as well as organizing the final tables into separate files for states.
+STATES_FILE = "path/to/file/tl_2008_us_state.shp"
+
+# location to write out accumulated StreamCat data <- this is intermediate
+# these files will hold statistics for...
+#   $Cat -> statistics for each catchment
+#   $UpCat -> the accumulated upstream catchment statistics
+#   $Ws -> statistics for the entire watershed
+OUT_DIR = ('C:/path/to/write/out/files/to')
+
+# location for the  final tables
+FINAL_DIR = "L:/Priv/CORFiles/Geospatial_Library_Projects/LakeCat/FTP_Staging/FinalTables"
+
+# files that hold the pct_full data, created from ???
+pct_full_file	= "L:/Priv/CORFiles/Geospatial_Library_Projects/StreamCat/ControlTables/ALL_BORDER_CATS.csv"
+pct_full_file_RP100 = "L:/Priv/CORFiles/Geospatial_Library_Projects/StreamCat/ControlTables/ALL_BORDER_CATS_Rp100.csv"
+
+#final_tables_dir	L:/Priv/CORFiles/Geospatial_Library/Data/Project/StreamCat/FTP_Staging/StreamCat/HydroRegions

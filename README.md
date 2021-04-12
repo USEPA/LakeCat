@@ -1,55 +1,60 @@
 # LakeCat
 
-## Description:
-The LakeCat DataSet (http://www2.epa.gov/national-aquatic-resource-surveys/lakecat) provides summaries of natural and anthropogenic landscape features for ~378,000 lakes and their associated catchments within the conterminous USA. This repo contains code used in LakeCat to process a suite of landscape rasters to produce watershed metrics for these lakes.
-
 ## Necessary Python Packages and Installation Tips
-
-The scripts for LakeCat rely on several python modules a user will need to install such as numpy, pandas, gdal, fiona, rasterio, geopandas, shapely, pysal, and ArcPy with an ESRI license (minimal steps still using ArcPy).  We highly recommend using a scientific python distribution such as [Anaconda](https://www.continuum.io/downloads) or [Enthought Canopy](https://www.enthought.com/products/canopy/).  We used the conda package manager to install necessary python modules. Our essential packages and versions used are listed below (Windows 64 and Python 2.7.11):
+The scripts for StreamCat rely on several python modules a user will need to install such as numpy, pandas, gdal, fiona, rasterio, geopandas, shapely, pysal, and ArcPy with an ESRI license (minimal steps still using ArcPy).  We highly recommend using a scientific python distribution such as [Anaconda](https://www.continuum.io/downloads) or [Enthought Canopy](https://www.enthought.com/products/canopy/).  We used the conda package manager to install necessary python modules. Note that package configurations and dependencies are sensitive and can change - in particular, setting up an environment with a working version of both `geopandas` and `arcpy` can be challenging. Our working version of the conda environment is contained in the StreamCat.yml file in the repository, and our essential packages and versions when code was last used are listed below - note that other configurations may work, we simply have verified this particular combination (Windows 64 and Python 3.7.10):
 
 | Package       | Version       | 
 | ------------- |--------------:|
-| fiona         | 1.7.7         | 
-| gdal          | 2.2.0         | 
-| geopandas     | 0.2.1         |  
-| geos          | 3.5.1         |
-| libgdal       | 2.0.0         |
-| numpy         | 1.12.1        |
-| pandas        | 0.20.2        |
-| pyproj        | 1.9.5.1       |
-| pysal         | 1.13.0        |
-| rasterio      | 1.0a9         |
-| shapely       | 1.5.17        |
+| python        | 3.7.10        | 
+| fiona         | 1.8.18        | 
+| gdal          | 3.1.4=py37    | 
+| geopandas     | 0.9.0         |  
+| geos          | 3.8.1         |
+| libgdal       | 3.1.4         |
+| numpy         | 1.19.5        |
+| pandas        | 1.2.3         |
+| pyproj        | 2.6.1         |
+| rasterio      | 1.2.1=py37    |
+| shapely       | 1.7.1         |
 
-If you are using Anaconda, creating a new, clean 'LakeCat' environment with these needed packages can be done easily and simply one of several ways:
+If you are using Anaconda, creating a new, clean 'StreamCat' environment with these needed packages can be done one of several ways:
 
-* In your conda shell, add one necessary channel and then download the lakecat environment from the Anaconda cloud:
+* In your conda shell, add one necessary channel and then download the streamcat environment from the Anaconda cloud:
   + conda config --add channels conda-forge
-  + conda env create mweber36/lakecat
+  + conda env create mweber36/StreamCat
   
-* Alternatively, using the lakecat.yml file in this repository, in your conda shell cd to the directory where your lakecat.yml file is located and run:
-  + conda env create -f LakeCat.yml
+* Alternatively, using the streamcat.yml file in this repository, in your conda shell cd to the directory where your streamcat.yml file is located and run:
+  + conda env create -f StreamCat.yml
   
-* To build environment yourself, do:
-  + conda env create -n LakeCat rasterio geopandas
-  + pip install georasters
+* To build environment yourself, we [followed the steps suggest here](https://www.e-education.psu.edu/geog489/node/2348) which are:
+  + conda create -n StreamCat -c conda-forge python=3.7 anaconda gdal=3.1.4 vs2015_runtime=14.28.29325 numpy=1.19.5 jupyter pandas geopandas matplotlib cartopy beautifulsoup4 shapely rpy2=3.4.1 simplegeneric r-raster=3.4_5 r-dismo=1.3_3 r-maptools pyproj=2.6.1.post1 rasterio
 
-* To activate this new environment and open Spyder, type the following at the conda prompt
-  + activate LakeCat
+* Activate the new environment:
+
+  + conda activate StreamCat
+
+* 
+* To open Spyder, type the following at the conda prompt
+  + activate Streamcat
   
   Then
 
   + Spyder
-  
-Finally, to use arcpy in this new environment, you will need to copy your Arc .pth file into your new environment.  Copy the .pth file for your install of ArcGIS located in a directory like:
 
-+ C:\Python27\ArcGISx6410.3\Lib\site-packages\DTBGGP64.pth
+Finally, to use arcpy in this new environment, you will need to copy several ArcPro files and folders to your new environment as follows:
+
++ C:/Program Files/ArcGIS/Pro/bin/Python/envs/arcgispro-py3/Lib/site-packages/Arcgisscripting 
+
++ C:/Program Files/ArcGIS/Pro/bin/Python/envs/arcgispro-py3/Lib/site-packages/arcpy_wmx
+
++ C:/Program Files/ArcGIS/Pro/bin/Python/envs/arcgispro-py3/Lib/site-packages/Gapy
 
 To your environment directory which should look something like:
 
-+ C:\Anaconda\envs\lakecat\Lib\site-packages\DTBGGP64.pth
++ C:/Users/mweber/AppData/Local/Continuum/anaconda3/envs/StreamCat/Lib/site-packages
 
 Note that the exact paths may vary depending on the version of ArcGIS and Anaconda you have installed and the configuration of your computer
+
 
 ## How to Run Scripts 
 
