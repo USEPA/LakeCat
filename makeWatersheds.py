@@ -17,29 +17,44 @@ sys.path.append('F:/GitProjects/StreamCat')
 from StreamCat_functions import dbf2DF
 import matplotlib.pyplot as plt
 
-def watershed_onnet(focal_com, uids, lengths, up, basins_shp, agg_ws_shp):        
-    try: 
-        #focal_uid = uids_trns[np.in1d(comids_trns, focal_com)]
+def watershed_onnet(focal_com, uids, lengths, up, basins_shp, agg_ws_shp):
+    try:
+        # focal_uid = uids_trns[np.in1d(comids_trns, focal_com)]
         focal_uid = focal_com
+        x = np.asscalar(lengths[np.in1d(uids, focal_uid)])
+        lngth = lengths[: np.asscalar(np.where(np.in1d(uids, focal_uid))[0])]
+        start = np.sum(lngth)
+        uplist = up[start : start + x]
+    except:
+        uplist = [focal_uid]
+    tmp_basin = basins_shp.loc[basins_shp["FEATUREID"].isin(uplist)]
+    tmp_basin.is_copy = False
+    tmp_basin["COMID"] = int(focal_com)
+    tmp_basin = tmp_basin[["geometry", "COMID"]]
+    tmp_intervpu = agg_ws_shp.loc[agg_ws_shp["COMID"].isin(uplist)]
+    tmp_intervpu.is_copy = False
+    tmp_intervpu["COMID"] = int(focal_com)
+    tmp_basin = tmp_basin.append(tmp_intervpu)
+    # tmp_basin['geometry'] = tmp_basin.buffer(0)
+    #    start_time2 = time.time()
+    #    tmp_basin = tmp_basin.dissolve(by='COMID')
+    #    print("--- %s seconds ---" % (time.time() - start_time2))
+    return tmp_basin
+
+def watershed_offnet(focal_com, uids, lengths, up, uids_trns, comids_trns, basins_shp):
+    try:   
+        focal_uid = uids_trns[np.in1d(comids_trns, focal_com)]
         l = np.asscalar(lengths[np.in1d(uids, focal_uid)])
         start = np.sum(lengths[:np.asscalar(np.where(np.in1d(uids, focal_uid))[0])])
         uplist = up[start:start+l]
     except: 
-        uplist = [focal_uid]
-    tmp_basin = basins_shp.loc[basins_shp['FEATUREID'].isin(uplist)] 
+        uplist = [focal_uid]     
+    tmp_basin = basins_shp.loc[basins_shp['UID'].isin(uplist)]  
     tmp_basin.is_copy = False
     tmp_basin['COMID'] = int(focal_com)
     tmp_basin = tmp_basin[['geometry', 'COMID']]
-    tmp_intervpu = agg_ws_shp.loc[agg_ws_shp['COMID'].isin(uplist)]
-    tmp_intervpu.is_copy = False
-    tmp_intervpu['COMID'] = int(focal_com)
-    tmp_basin = tmp_basin.append(tmp_intervpu)
-    #tmp_basin['geometry'] = tmp_basin.buffer(0)
-#    start_time2 = time.time()
-#    tmp_basin = tmp_basin.dissolve(by='COMID')
-#    print("--- %s seconds ---" % (time.time() - start_time2))  
+    tmp_basin = tmp_basin.dissolve(by='COMID')
     return tmp_basin
-
 
 def WBCOMID_COMID(nhd_dir, hydro, vpu, nhdcats):    
     pre = "%s/NHDPlus%s/NHDPlus%s" % (nhd_dir, hydro, vpu)
@@ -59,12 +74,15 @@ def WBCOMID_COMID(nhd_dir, hydro, vpu, nhdcats):
     return df          
                 
 #Define directories
-nhd_dir = 'H:/NHDPlusV21/'
-np_dir = 'L:/Priv/CORFiles/Geospatial_Library_Projects/StreamCat/numpy_files/children/'
+nhd_dir = 'F:/NHDPlusV21/'
+ws_dir = 'O:/PRIV/CPHEA/PESD/COR/CORFiles/Geospatial_Library_Projects/LakeCat/Watersheds_Framework/'
+np_dir = 'E:/GitProjects/StreamCat/accum_npy/'
+# np_dir = 'O:/PRIV/CPHEA/PESD/COR/CORFiles/Geospatial_Library_Projects/LakeCat/LakeCat_Framework/LakeCat_npy/children/'
 #Read in  COMIDs of interest of select certain COMIDs 
-#lakes_df = pd.read_csv(nla17_dir + '/NLA17_LandscapeData.csv')
-#lakes = np.array(lakes_df.COMID).astype(int)
-coms = np.array(19268286).astype(int)
+nla17_dir = 'O:/PRIV/CPHEA/PESD/COR/CORFiles/Geospatial_Library_Projects/NLA/NLA2017LandscapeMetrics/'
+lakes_df = pd.read_csv(nla17_dir + 'NLA17_missing.csv')
+lakes = np.array(lakes_df.COMID).astype(int)
+# coms = np.array(19268286).astype(int)
 
 
 #Read in on-network numpy files
@@ -75,29 +93,30 @@ on_uids = tmp_np['uids']
 on_vpus = tmp_np['vpus']
 on_uids_trns = tmp_np['on_uids_trns']
 on_comids_trns = tmp_np['on_comids_trns']
-vectunit = tmp_np['vectunit']
-hydreg = tmp_np['hydreg']
+vectunit = tmp_np['vectunit'].astype(str)
+hydreg = tmp_np['hydreg'].astype(str)
 del tmp_np
 #Create on-net lake watersheds
 onnet = lakes[np.in1d(lakes, on_comids_trns)]
 onuids = on_uids_trns[np.in1d(on_comids_trns, onnet)]
 onuids = on_uids[np.in1d(on_uids, onuids)]
-vpus = on_vpus[np.in1d(on_uids, onuids)]
+vpus = on_vpus[np.in1d(on_uids, onuids)].astype(str)
 
-vpu_list = np.unique(vpus)
+vpu_list = np.unique(vpus).astype(str)
+
 intervpu = gpd.read_file(ws_dir + 'interVPUs.shp')
 
 i=0
 for vpu in vpu_list:
-    print vpu
+    print(vpu)
     hydro = hydreg[np.in1d(vectunit,vpu)]
     onuids_vpu = onuids[np.in1d(vpus, vpu)]
 #    onnet_vpu = onnet[np.in1d(vpus, vpu)]
     nhdcats = gpd.read_file(nhd_dir + '/NHDPlus' + hydro[0] + '/NHDPlus' + vpu + '/NHDPlusCatchment/Catchment.shp')
-    tmp_np = np.load(np_dir + 'accum_' + vpu + '.npz')
+    tmp_np = np.load(np_dir + 'accum_' + str(vpu) + '.npz')
     #nhdcats['dummy'] = 1 
     for lake in onuids_vpu:
-        print lake
+        print(lake)
         start_time2 = time.time()
         if i==0:
             out_ws = watershed_onnet(lake, tmp_np['comids'], tmp_np['lengths'], tmp_np['upstream'], nhdcats, intervpu)
@@ -105,7 +124,7 @@ for vpu in vpu_list:
             out_ws['geometry'] = out_ws.buffer(0.01)
             out_ws = out_ws.dissolve(by='COMID')
             out_ws['COMID'] = out_ws.index
-#            out_ws['SITE_ID'] = lakes_df.loc[lakes_df.index[i],'SITE_ID']
+            out_ws['SITE_ID'] = lakes_df.loc[lakes_df.index[i],'SITE_ID']
         else:
             temp_ws = watershed_onnet(lake, tmp_np['comids'], tmp_np['lengths'], tmp_np['upstream'], nhdcats, intervpu)
             temp_ws = temp_ws.to_crs(epsg=5070)
@@ -113,12 +132,12 @@ for vpu in vpu_list:
             temp_ws['geometry'] = temp_ws.buffer(0.01)
             temp_ws = temp_ws.dissolve(by='COMID')
             temp_ws['COMID'] = temp_ws.index
-#            temp_ws['SITE_ID'] = lakes_df.loc[lakes_df.index[i],'SITE_ID']
+            temp_ws['SITE_ID'] = lakes_df.loc[lakes_df.index[i],'SITE_ID']
             out_ws = out_ws.append(temp_ws, ignore_index=True)
         i+=1
         print("--- %s seconds ---" % (time.time() - start_time2)) 
         #world.to_file(filename=temp_shp,driver='ESRI Shapefile',crs_wkt=prj)
-        print '------------------------------------'
+        print('------------------------------------')
 
 tmp = int(on_comids_trns[np.in1d(on_uids_trns, comid)])        
 out_ws['WBCOMID'] = on_comids_trns[np.in1d(on_uids_trns, out_ws['COMID'])]
@@ -127,14 +146,14 @@ for vals in out_ws['COMID']:
     out_ws.loc[(out_ws['COMID']==vals),'WBCOMID'] = tmp
 out_ws[['WBCOMID']] = out_ws[['WBCOMID']].astype(int)
 out_ws[['COMID']] = out_ws[['COMID']].astype(int)
-out_ws.columns = ['CAT_COMID','geometry', 'COMID']
-out_ws = out_ws[['COMID','CAT_COMID','geometry']]
+# out_ws.columns = ['CAT_COMID','geometry', 'COMID']
+out_ws = out_ws[['SITE_ID','COMID','geometry']]
 
 # Add SITE_ID
 lakes_df = lakes_df[['COMID','SITE_ID']]
 out_ws = out_ws.merge(lakes_df, how='left')
 out_ws = out_ws[['SITE_ID','COMID','CAT_COMID','geometry']]
-out_ws.to_file('L:/Priv/CORFiles/Geospatial_Library_Projects/NLA/NLA2017LandscapeMetrics/On_Network_Lakes/OnNetLakes.shp', driver = 'ESRI Shapefile')
+out_ws.to_file(nla17_dir + 'Missing_OnNetLakes.shp', driver = 'ESRI Shapefile')
 
 #Off-Net Lakes
 #Read in off-network numpy files
@@ -145,7 +164,7 @@ offnet = lakes[np.in1d(lakes, off_np['off_comids_trns'])]
 basins = gpd.read_file(ws_dir + '/allBasins.shp')
 i=0
 for lake in offnet:
-    print lake
+    print(lake)
     if i==0:
         out_ws = watershed_offnet(lake, off_np['uids'], off_np['lengths'], off_np['upstream'], off_np['off_uids_trns'], 
                           off_np['off_comids_trns'], basins)
@@ -153,26 +172,28 @@ for lake in offnet:
         out_ws['geometry'] = out_ws.buffer(0.01)
         out_ws = out_ws.dissolve(by='COMID')
         out_ws['COMID'] = out_ws.index
-#            out_ws['SITE_ID'] = lakes_df.loc[lakes_df.index[i],'SITE_ID']
+        out_ws['SITE_ID'] = lakes_df.loc[lakes_df.index[i],'SITE_ID']
     else:
         temp_ws = watershed_offnet(lake, off_np['uids'], off_np['lengths'], off_np['upstream'], off_np['off_uids_trns'], 
                           off_np['off_comids_trns'], basins)
         temp_ws = temp_ws.to_crs(epsg=5070)
+        temp_ws.index.name = None
         temp_ws['COMID'] = lake
         temp_ws['geometry'] = temp_ws.buffer(0.01)
+        # temp_ws['COMID'] = temp_ws.index
         temp_ws = temp_ws.dissolve(by='COMID')
-        temp_ws['COMID'] = temp_ws.index
-#            temp_ws['SITE_ID'] = lakes_df.loc[lakes_df.index[i],'SITE_ID']
+        
+        temp_ws['SITE_ID'] = lakes_df.loc[lakes_df.index[i],'SITE_ID']
         out_ws = out_ws.append(temp_ws, ignore_index=True)
     i+=1
     print("--- %s seconds ---" % (time.time() - start_time2)) 
     #world.to_file(filename=temp_shp,driver='ESRI Shapefile',crs_wkt=prj)
-    print '------------------------------------'
+    print('------------------------------------')
 
-out_ws = out_ws[['COMID','geometry']]  
-out_ws = out_ws.merge(lakes_df, how='left') 
+# out_ws = out_ws[['COMID','geometry']]  
+# out_ws = out_ws.merge(lakes_df, how='left') 
 out_ws = out_ws[['SITE_ID','COMID','geometry']]     
-out_ws.to_file('L:/Priv/CORFiles/Geospatial_Library_Projects/NLA/NLA2017LandscapeMetrics/Off_Network_Lakes/Off_Network_InNHD_NLA17Lakes.shp', driver = 'ESRI Shapefile')
+out_ws.to_file(nla17_dir + 'Missing_OffNetLakes.shp', driver = 'ESRI Shapefile')
 off_net_inNHD = out_ws
 
 # Combind on and off network lakes with standard columns
