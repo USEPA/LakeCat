@@ -1,14 +1,18 @@
 
-
+FINAL_DIR = (
+    "O:/PRIV/CPHEA/PESD/COR/CORFiles/Geospatial_Library_Projects"
+    "/LakeCat/FTP_Staging/FinalTables"
+)
+#
 # location of the landscape layers to perform statistics on
 LYR_DIR = 'C:/path/to/landscape/layers'
 
 # path to the framework created for LakeCat
-FRAMEWORK = ("L:/Priv/CORFiles/Geospatial_Library_Projects/LakeCat/"
-             "LakeCat_Framework")
+# FRAMEWORK = ("O:/PRIV/CPHEA/PESD/COR/CORFiles/Geospatial_Library_Projects/LakeCat/LakeCat_Framework")
+FRAMEWORK = ("framework")
 
 # path to Allocated StreamCat files
-STREAMCAT_DIR = ("L:/Priv/CORFiles/Geospatial_Library_Projects/StreamCat/"
+STREAMCAT_DIR = ("O:/PRIV/CPHEA/PESD/COR/CORFiles/Geospatial_Library_Projects/StreamCat/"
                  "Allocation_and_Accumulation")
                  
 # location of the NHDPlus, indicate the top-level directory
@@ -26,10 +30,10 @@ STATES_FILE = "path/to/file/tl_2008_us_state.shp"
 OUT_DIR = ('C:/path/to/write/out/files/to')
 
 # location for the  final tables
-FINAL_DIR = "L:/Priv/CORFiles/Geospatial_Library_Projects/LakeCat/FTP_Staging/FinalTables"
+FINAL_DIR = "O:/PRIV/CPHEA/PESD/COR/CORFiles/Geospatial_Library_Projects/LakeCat/FTP_Staging/FinalTables"
 
 # files that hold the pct_full data, created from ???
-pct_full_file	= "L:/Priv/CORFiles/Geospatial_Library_Projects/StreamCat/ControlTables/ALL_BORDER_CATS.csv"
-pct_full_file_RP100 = "L:/Priv/CORFiles/Geospatial_Library_Projects/StreamCat/ControlTables/ALL_BORDER_CATS_Rp100.csv"
+pct_full_file	= "O:/PRIV/CPHEA/PESD/COR/CORFiles/Geospatial_Library_Projects/StreamCat/ControlTables/ALL_BORDER_CATS.csv"
+pct_full_file_RP100 = "O:/PRIV/CPHEA/PESD/COR/CORFiles/Geospatial_Library_Projects/StreamCat/ControlTables/ALL_BORDER_CATS_Rp100.csv"
 
 #final_tables_dir	L:/Priv/CORFiles/Geospatial_Library/Data/Project/StreamCat/FTP_Staging/StreamCat/HydroRegions
