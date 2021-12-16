@@ -50,7 +50,7 @@ if __name__ == "__main__":
         makeBasins(NHD_DIR, NHDbounds, out)
         makeNParrays(out)
         us_file = (
-            "L:/Priv/CORFiles/Geospatial_Library_Resource/"
+            "O:/PRIV/CPHEA/PESD/COR/CORFiles/Geospatial_Library_Resource/"
             "POLITICAL/BOUNDARIES/NATIONAL/TIGER_2010_State_Boundaries.shp"
         )
         bsns = "framework/shps/allBasins.shp"
