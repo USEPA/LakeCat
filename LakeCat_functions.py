@@ -535,7 +535,7 @@ def getOnNetLakes(metric, StreamCat, LakeComs, npy_files, nhd):
         #            strmCat = strmCat.drop([x for x in strmCat.columns if 'MAX' in x or 'MIN' in x], axis=1)
         cols = [col for col in strmCat.columns if col[:3] == "Cat"]
         iso = strmCat[["COMID"] + cols]
-        accum = np.load(npy_files, allow_pickle=True)["vpus"].item()[zone]
+        accum = np.load(npy_files, allow_pickle=True,encoding='latin1')["vpus"].item()[zone]
         accumCats = Accumulation(
             iso, accum["comids"], accum["lengths"], accum["upstream"], "", "COMID"
         )
