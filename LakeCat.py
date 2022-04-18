@@ -48,10 +48,10 @@ if __name__ == "__main__":
         makeNParrays(FRAMEWORK)
         us_file = (
             "L:/Priv/CORFiles/Geospatial_Library_Resource/"
-            "POLITICAL/BOUNDARIES/NATIONAL/TIGER_2010_State_Boundaries.shp"
+            "POLITICAL/BOUNDARIES/NATIONAL/tl_2018_us_state.shp"
         )
         bsns = f"{FRAMEWORK}/shps/allBasins.shp"
-        brdr = makeBrdrPctFile(us_file, bsns, "NAME10", "UID")
+        brdr = makeBrdrPctFile(us_file, bsns, "NAME", "UID")
         os.mkdir(f"{FRAMEWORK}/border")
         brdr.to_csv(f"{FRAMEWORK}/border/pct_full.csv")
 

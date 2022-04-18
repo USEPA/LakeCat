@@ -139,8 +139,8 @@ TRI,Point,TRIDens,none,TRI.shp,,EPA_FRS,Density,1,0,0,,Yes
 US_Level_III_Ecoregions,Categorical,L:/Priv/CORFiles/Geospatial_Library_Projects/StreamCat/ControlTables/US_Level_III_Ecoregions_lookup.csv,none,US_Level_III_Ecoregions.tif,,US_Level_III_Ecoregions,Percent,1,0,0,,No
 WetnessIndex,Continuous,WetIndex,none,cti_v3.tif,,WetIndx,Mean,1,0,0,,Yes
 WtDep,Continuous,WtDep,none,wtdep.tif,,STATSGO_Set2,Mean,0.01,0,0,,Yes
-WWTPAll,Point,WWTPAllDens,none,WWTP_All_CWA_Active_2013_CONUS.shp,,WWTP,Density,1,0,0,,No
-WWTPMajor,Point,WWTPMajorDens,none,WWTP_Major_CWA_Active_2013_CONUS.shp,,WWTP,Density,1,0,0,,No
-WWTPMinor,Point,WWTPMinorDens,none,WWTP_Minor_CWA_Active_2013_CONUS.shp,,WWTP,Density,1,0,0,,No
+WWTPAll,Point,WWTPAllDens,none,WWTP_All_CWA_Active_2013_CONUS.shp,,WWTP,Density,1,0,1,,No
+WWTPMajor,Point,WWTPMajorDens,none,WWTP_Major_CWA_Active_2013_CONUS.shp,,WWTP,Density,1,0,1,,No
+WWTPMinor,Point,WWTPMinorDens,none,WWTP_Minor_CWA_Active_2013_CONUS.shp,,WWTP,Density,1,0,1,,No
 Slope,Continuous,Slope,none,slope_perc,,Slope,Mean,1,1,0,,Yes
-wdrw_LD,Continuous,wdrw_LD,none,wdrw_onag12_v3.tif,,wdrw_LD,Mean,3.79E-06,0,1,0,Yes
+wdrw_LD,Continuous,wdrw_LD,none,wdrw_onag12_v3.tif,,wdrw_LD,Mean,3.79E-06,0,0,0,Yes

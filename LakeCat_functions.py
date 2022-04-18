@@ -168,9 +168,9 @@ def doStats(OUT_DIR, LYR_DIR, NHD_DIR, FRAMEWORK):
 
         if row.accum_type == "Point":
 
-            pct_full = pd.read_csv("framework/border/pct_full.csv")
+            pct_full = pd.read_csv(f"{FRAMEWORK}/border/pct_full.csv")
             points = gpd.GeoDataFrame.from_file(LLyr)
-            basins = "framework/shps/allBasins.shp"
+            basins = f"{FRAMEWORK}/shps/allBasins.shp"
             stats = PointInPoly(points, basins, pct_full, "UID", summaryfield)
 
         print("ZonalStats Results Complete in : " + str(dt.now() - start))
