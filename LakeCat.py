@@ -16,7 +16,7 @@ import pandas as pd
 
 from border import makeBrdrPctFile
 from lake_cat_config import LYR_DIR, NHD_DIR, OUT_DIR, STREAMCAT_DIR, FRAMEWORK
-from LakeCat_functions import (Accumulation, NHDtblMerge, PointInPoly,
+from LakeCat_functions import (Accumulation, NHDtblMerge, PointInPoly,dbf2DF,
                                chkColumnLength, doStats, getOnNetLakes, inputs,
                                makeBasins, makeNParrays, rpus)
 

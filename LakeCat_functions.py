@@ -435,11 +435,10 @@ def PointInPoly(points, inZoneData, pct_full, fld="GRIDCODE", summaryfield=None)
     if not points.crs == polys.crs:
         points = points.to_crs(polys.crs)
     # Get list of lat/long fields in the table
-    latlon = [
-        s for s in points.columns if any(xs in s.upper() for xs in ["LONGIT", "LATIT"])
-    ]
-    # Remove duplicate points for 'Count'
-    points2 = points.loc[~points.duplicated(latlon)]
+    points['lon'] = points['geometry'].x
+    points['lat'] = points['geometry'].y
+    # Remove duplicate points
+    points2 = points.drop_duplicates(subset=["lon", "lat"], keep='last')
     try:
         point_poly_join = sjoin(points2, polys, how="left", op="within")
     except:
