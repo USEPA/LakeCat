@@ -1,17 +1,16 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 authors:
-  - family-names: Hill
-    given-names: Ryan
-    orcid: https://orcid.org/0000-0001-9583-0426
-  - family-names: Weber
-    given-names: Marc
-    orcid: https://orcid.org/0000-0002-9742-4744
-  - family-names: Debbout
-    given-names: Rick
-    orcid: https://orcid.org/0000-0000-0000-0000
-title: USEPA/LakeCat: LakeCat
+  - family-names: "Hill"
+    given-names: "Ryan"
+    orcid: "https://orcid.org/0000-0001-9583-0426"
+  - family-names: "Weber"
+    given-names: "Marc"
+    orcid: "https://orcid.org/0000-0002-9742-4744"
+  - family-names: "Debbout"
+    given-names: "Rick"
+title: "LakeCat"
 version: v.2.1
 doi: 10.5281/zenodo.7967447
 date-released: 2023-05-24
-url: https://github.com/USEPA/LakeCat
+url: "https://github.com/USEPA/LakeCat"
