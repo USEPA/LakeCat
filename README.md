@@ -1,4 +1,4 @@
-[![DOI Badge](https://zenodo.org/badge/70847646.svg)]
+[DOI Badge](https://zenodo.org/badge/70847646.svg)
 https://zenodo.org/badge/70847646.svg
 # LakeCat
 
