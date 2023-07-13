@@ -1,7 +1,12 @@
+[![DOI Badge](https://zenodo.org/badge/70847646.svg)](https://zenodo.org/badge/70847646.svg)
+https://zenodo.org/badge/70847646.svg
 # LakeCat
 
+## Description: 
+The LakeCat Dataset (http://www2.epa.gov/national-aquatic-resource-surveys/lakecat-dataset) provides summaries of natural and anthropogenic landscape features for ~2.65 million streams, and their associated catchments, within the conterminous USA. This repo contains code used in StreamCat to process a suite of landscape rasters to watersheds for streams and their associated catchments (local reach contributing area) within the conterminous USA using the [NHDPlus Version 2](http://www.horizon-systems.com/NHDPlus/NHDPlusV2_data.php) as the geospatial framework.
+
 ## Necessary Python Packages and Installation Tips
-The scripts for StreamCat rely on several python modules a user will need to install such as numpy, pandas, gdal, fiona, rasterio, geopandas, shapely, pysal, and ArcPy with an ESRI license (minimal steps still using ArcPy).  We highly recommend using a scientific python distribution such as [Anaconda](https://www.continuum.io/downloads) or [Enthought Canopy](https://www.enthought.com/products/canopy/).  We used the conda package manager to install necessary python modules. Note that package configurations and dependencies are sensitive and can change - in particular, setting up an environment with a working version of both `geopandas` and `arcpy` can be challenging. Our working version of the conda environment is contained in the StreamCat.yml file in the repository, and our essential packages and versions when code was last used are listed below - note that other configurations may work, we simply have verified this particular combination (Windows 64 and Python 3.7.10):
+The scripts for LakeCat rely on several python modules a user will need to install such as numpy, pandas, gdal, fiona, rasterio, geopandas, shapely, pysal, and ArcPy with an ESRI license (minimal steps still using ArcPy).  We used the conda package manager to install necessary python modules. Note that package configurations and dependencies are sensitive and can change - in particular, setting up an environment with a working version of both `geopandas` and `arcpy` can be challenging. Our working version of the conda environment is contained in the StreamCat.yml file in the repository, and our essential packages and versions when code was last used are listed below - note that other configurations may work, we simply have verified this particular combination (Windows 64 and Python 3.7.10):
 
 | Package       | Version       | 
 | ------------- |--------------:|
