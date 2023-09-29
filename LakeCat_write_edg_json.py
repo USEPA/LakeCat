@@ -110,7 +110,7 @@ blob = {
       "dataset": records,
 }
 with open(
-        "O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/LakeCat/Metadata/copmlete_metadata"
+        "O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/LakeCat/Metadata/complete_metadata"
         f"/LakeCat_metadata_{dt.now().strftime('%m_%d_%Y')}.json", #replace 
         "w"
     ) as fifi:
