@@ -158,7 +158,7 @@ TMEANPY_2017,Continuous,TMEANPY_2017,none,TMEANPY.tif,,PRISM_2017,Mean,1,0,0,,No
 tmin,Continuous,Tmin8110,none,tmin.tif,,PRISM_1981_2010,Mean,1,0,0,,Yes
 TRI,Point,TRIDens,none,TRI.shp,,EPA_FRS,Density,1,0,0,,Yes
 US_Level_III_Ecoregions,Categorical,L:/Priv/CORFiles/Geospatial_Library_Projects/StreamCat/ControlTables/US_Level_III_Ecoregions_lookup.csv,none,US_Level_III_Ecoregions.tif,,US_Level_III_Ecoregions,Percent,1,0,0,,No
-WetnessIndex,Continuous,WetIndex,none,cti_v3.tif,,WetIndx,Mean,1,0,0,,Yes
+WetnessIndex,Continuous,WetIndex,none,cti_v3.tif,,WetIndex,Mean,1,0,0,,Yes
 WtDep,Continuous,WtDep,none,wtdep.tif,,STATSGO_Set2,Mean,0.01,0,0,,Yes
 WWTPAll,Point,WWTPAllDens,none,WWTP_All_CWA_Active_2013_CONUS.shp,,WWTP,Density,1,0,0,,No
 WWTPMajor,Point,WWTPMajorDens,none,WWTP_Major_CWA_Active_2013_CONUS.shp,,WWTP,Density,1,0,0,,No
