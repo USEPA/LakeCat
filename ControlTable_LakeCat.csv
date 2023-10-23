@@ -6,7 +6,7 @@ AgKffact,Continuous,AgKffact,none,AgKffact.tif,,Kffact,Mean,0.01,0,0,,Yes
 Al2O3,Continuous,Al2O3,none,al20mar14.tif,,GeoChemPhys1,Mean,1,0,0,,Yes
 Aquifers,Categorical,lookup/Aquifer_Table_lookup.csv,none,us_aquifers_two.tif,,Aquifers,Percent,1,0,0,,No
 BFI,Continuous,BFI,none,bfi.tif,,BFI,Mean,1,0,0,,Yes
-CanalDensity,Continuous,CanalDens,none,CanalsDitches.tif,,CanalsDitches,Density,0.03,0,0,,Yes
+CanalDensity,Continuous,CanalDens,none,CanalsDitches.tif,,CanalDensity,Density,0.03,0,0,,Yes
 CaO,Continuous,CaO,none,cao20mar14.tif,,GeoChemPhys1,Mean,1,0,0,,Yes
 CBNF,Continuous,CBNF,none,cbnf.tif,,AgriculturalNitrogen,Mean,1,0,0,,Yes
 Clay,Continuous,Clay,none,clay.tif,,STATSGO_Set1,Mean,0.01,0,0,,Yes
