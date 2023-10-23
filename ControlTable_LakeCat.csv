@@ -139,7 +139,7 @@ PRISMtmean_2008,Continuous,Tmean08,none,PRISMtmean_2008.tif,,PRISM_0809,Mean,1,0
 PRISMtmean_2009,Continuous,Tmean09,none,PRISMtmean_2009.tif,,PRISM_0809,Mean,1,0,0,,Yes
 PSUM6_2017,Continuous,PSUM6_2017,none,PSUM6.tif,,PRISM_2017,Mean,1,0,0,,No
 PSUMPY_2017,Continuous,PSUMPY_2017,none,PSUMPY.tif,,PRISM_2017,Mean,1,0,0,,No
-Rckdep,Continuous,Rckdep,none,rckdep.tif,,STATSGO_Set2,Mean,0.01,0,0,,Yes
+RckDep,Continuous,RckDep,none,rckdep.tif,,STATSGO_Set2,Mean,0.01,0,0,,Yes
 RdCrs,Continuous,RdCrs,none,rdstcrs.tif,,RoadStreamCrossings,Density,1,0,0,,Yes
 RdDens,Continuous,RdDens,none,roadden.tif,,RoadDensity,Mean,1,0,0,,Yes
 RockN,Continuous,RockN,none,RockN_USA_USGSproj_1km_kgkm2.tif,,RockN,Mean,1,0,0,,No
