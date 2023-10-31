@@ -1,22 +1,30 @@
 
 
 # location of the landscape layers to perform statistics on
+# Location is in the StreamCat directory
 LYR_DIR = 'C:/path/to/landscape/layers'
 
-# path to the framework created for LakeCat
-FRAMEWORK = ("L:/Priv/CORFiles/Geospatial_Library_Projects/LakeCat/"
-             "LakeCat_Framework")
+###("O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/StreamCat/LandscapeRasters/QAComplete")
 
+# path to the framework created for LakeCat
+FRAMEWORK = ("O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/LakeCat/LakeCat_Framework")
+
+###("O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/LakeCat/LakeCat_Framework")
+             
+             
 # path to Allocated StreamCat files
-STREAMCAT_DIR = ("L:/Priv/CORFiles/Geospatial_Library_Projects/StreamCat/"
-                 "Allocation_and_Accumulation")
+STREAMCAT_DIR = ("O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/StreamCat/Allocation_and_Accumulation")
                  
+###("O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/StreamCat/Allocation_and_Accumulation")
+
 # location of the NHDPlus, indicate the top-level directory
-NHD_DIR = 'D:/NHDPlusV21'
+NHD_DIR = ("H:/NHDPlusV21")
 
 # TIGER shapefile is needed for calculaitng the PctFUll values of Point type
 # metrics as well as organizing the final tables into separate files for states.
-STATES_FILE = "path/to/file/tl_2008_us_state.shp"
+STATES_FILE = ("O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Resource/POLITICAL/BOUNDARIES/NATIONAL/tl_2008_us_state.shp")
+
+###("O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Resource/POLITICAL/BOUNDARIES/NATIONAL/tl_2008_us_state.shp")
 
 # location to write out accumulated StreamCat data <- this is intermediate
 # these files will hold statistics for...
@@ -24,6 +32,9 @@ STATES_FILE = "path/to/file/tl_2008_us_state.shp"
 #   $UpCat -> the accumulated upstream catchment statistics
 #   $Ws -> statistics for the entire watershed
 OUT_DIR = ('C:/path/to/write/out/files/to')
+
+###("O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/LakeCat/Allocation_Accumulation")
+
 
 # location for the  final tables
 FINAL_DIR = "L:/Priv/CORFiles/Geospatial_Library_Projects/LakeCat/FTP_Staging/FinalTables"
