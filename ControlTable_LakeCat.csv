@@ -1,7 +1,21 @@
 ﻿FullTableName,accum_type,MetricName,AppendMetric,LandscapeLayer,summaryfield,Final_Table_Name,MetricType,Conversion,by_RPU,run,notes,Published,Metadata,In APIDatabase,Date added
 AgDrain,Categorical,lookup/AgDrain_lookup.csv,none,AgDrain_stlvl_FINAL.tif,,AgDrain,Percent,1,0,0,,No,No,,11/19/2020
-Ag2006HiSlp,Categorical,L:/Priv/CORFiles/Geospatial_Library/Data/Project/StreamCat/ControlTables/Ag2006HiSlp_lookup.csv,none,Ag2006HiSlp.tif,,AgMidHiSlopes,Percent,1,0,0,,Yes,Yes,,6/19/2017
-Ag2006MidSlp,Categorical,L:/Priv/CORFiles/Geospatial_Library/Data/Project/StreamCat/ControlTables/Ag2006MidSlp_lookup.csv,none,Ag2006MidSlp.tif,,AgMidHiSlopes,Percent,1,0,0,,Yes,Yes,,6/19/2017
+Ag2001HiSlp,Categorical,O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/StreamCat/ControlTables/Ag2001HiSlp_lookup.csv,none,Ag2001HiSlp.tif,,AgMidHiSlopes2001,Percent,1,0,0,,Yes,Yes,,6/19/2017
+Ag2001MidSlp,Categorical,O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/StreamCat/ControlTables/Ag2001MidSlp_lookup.csv,none,Ag2001MidSlp.tif,,AgMidHiSlopes2001,Percent,1,0,0,,Yes,Yes,,6/19/2017
+Ag2004HiSlp,Categorical,O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/StreamCat/ControlTables/Ag2004HiSlp_lookup.csv,none,Ag2004HiSlp.tif,,AgMidHiSlopes2004,Percent,1,0,0,,Yes,Yes,,6/19/2017
+Ag2004MidSlp,Categorical,O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/StreamCat/ControlTables/Ag2004MidSlp_lookup.csv,none,Ag2004MidSlp.tif,,AgMidHiSlopes2004,Percent,1,0,0,,Yes,Yes,,6/19/2017
+Ag2006HiSlp,Categorical,O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/StreamCat/ControlTables/Ag2006HiSlp_lookup.csv,none,Ag2006HiSlp.tif,,AgMidHiSlopes2006,Percent,1,0,0,,Yes,Yes,,6/19/2017
+Ag2006MidSlp,Categorical,O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/StreamCat/ControlTables/Ag2006MidSlp_lookup.csv,none,Ag2006MidSlp.tif,,AgMidHiSlopes2006,Percent,1,0,0,,Yes,Yes,,6/19/2017
+Ag2008HiSlp,Categorical,O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/StreamCat/ControlTables/Ag2008HiSlp_lookup.csv,none,Ag2008HiSlp.tif,,AgMidHiSlopes2008,Percent,1,0,0,,Yes,Yes,,6/19/2017
+Ag2008MidSlp,Categorical,O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/StreamCat/ControlTables/Ag2008MidSlp_lookup.csv,none,Ag2008MidSlp.tif,,AgMidHiSlopes2008,Percent,1,0,0,,Yes,Yes,,6/19/2017
+Ag2011HiSlp,Categorical,O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/StreamCat/ControlTables/Ag2011HiSlp_lookup.csv,none,Ag2011HiSlp.tif,,AgMidHiSlopes2011,Percent,1,0,0,,Yes,Yes,,6/19/2017
+Ag2011MidSlp,Categorical,O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/StreamCat/ControlTables/Ag2011MidSlp_lookup.csv,none,Ag2011MidSlp.tif,,AgMidHiSlopes2011,Percent,1,0,0,,Yes,Yes,,6/19/2017
+Ag2013HiSlp,Categorical,O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/StreamCat/ControlTables/Ag2013HiSlp_lookup.csv,none,Ag2013HiSlp.tif,,AgMidHiSlopes2013,Percent,1,0,0,,Yes,Yes,,6/19/2017
+Ag2013MidSlp,Categorical,O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/StreamCat/ControlTables/Ag2013MidSlp_lookup.csv,none,Ag2013MidSlp.tif,,AgMidHiSlopes2013,Percent,1,0,0,,Yes,Yes,,6/19/2017
+Ag2016HiSlp,Categorical,O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/StreamCat/ControlTables/Ag2016HiSlp_lookup.csv,none,Ag2016HiSlp.tif,,AgMidHiSlopes2016,Percent,1,0,0,,Yes,Yes,,6/19/2017
+Ag2016MidSlp,Categorical,O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/StreamCat/ControlTables/Ag2016MidSlp_lookup.csv,none,Ag2016MidSlp.tif,,AgMidHiSlopes2016,Percent,1,0,0,,Yes,Yes,,6/19/2017
+Ag2019HiSlp,Categorical,O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/StreamCat/ControlTables/Ag2019HiSlp_lookup.csv,none,Ag2019HiSlp.tif,,AgMidHiSlopes2019,Percent,1,0,1,,Yes,Yes,,6/19/2017
+Ag2019MidSlp,Categorical,O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/StreamCat/ControlTables/Ag2019MidSlp_lookup.csv,none,Ag2019MidSlp.tif,,AgMidHiSlopes2019,Percent,1,0,1,,Yes,Yes,,6/19/2017
 CBNF,Continuous,CBNF,none,cbnf.tif,,AgriculturalNitrogen,Mean,1,0,0,,Yes,Yes,,6/16/2017
 Fert,Continuous,Fert,none,fert.tif,,AgriculturalNitrogen,Mean,1,0,0,,Yes,Yes,,6/16/2017
 Manure,Continuous,Manure,none,manure.tif,,AgriculturalNitrogen,Mean,1,0,0,,Yes,Yes,,6/16/2017
