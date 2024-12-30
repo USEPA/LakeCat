@@ -98,6 +98,7 @@ lakes_df = pd.read_csv(lakecat_dir + 'FTP_Staging/FinalTables/Dams.csv')
 lakes_df = lakes_df[lakes_df['inStreamCat'] == 1 & lakes_df['COMID'].notnull()]
 # lakes_df = lakes_df[lakes_df['COMID'].notnull()]
 # lakes_df = lakes_df.rename(columns={'NHDPlusV2 COMID': 'COMID'})
+lakes_df = pd.read_csv('E:/WorkingData/missing_onnet.csv')
 lakes = np.array(lakes_df.COMID).astype(int)
 # coms = np.array(19268286).astype(int)
 
@@ -139,7 +140,7 @@ for vpu in vpu_list:
     tmp_np = np.load(np_dir + 'accum_' + str(vpu) + '.npz')
     #nhdcats['dummy'] = 1 
     for lake in onuids_vpu:
-        if lake in missing:
+        if lake not in done[['COMID']]:
             print(lake)
             start_time2 = time.time()
             if i==0:
