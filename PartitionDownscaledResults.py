@@ -12,7 +12,7 @@ import pyarrow.parquet as pq
 import os
 
 # Read in template set of LakeCat COMIDS
-alloc_dir = "O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/LakeCat/Allocation_and_Accumulation"
+alloc_dir = "O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/LakeCat/Allocation_Accumulation"
 # Get a list of matching files
 
 LakeCat_template = pd.read_csv(alloc_dir + '/Clay.csv')
@@ -22,27 +22,27 @@ LakeCat_template = pd.read_csv(alloc_dir + '/Clay.csv')
 # nut_dir = 'E:/WorkingData/To_Be_Flow_Accumulated/'
 # nut = pd.read_csv(nut_dir + 'ClimTerms_2012_10.csv')
 #nut_dir = 'O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/AmaliaHandler/'
-nut_dir = 'O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/NutrientInventory/CountyCatResultsData/'
-nut = pd.read_parquet(nut_dir + 'p_crop_remCountyCatResults.parquet')
+nut_dir = 'O:/PRIV/CPHEA/PESD/COR/CORFILES/Geospatial_Library_Projects/NutrientInventory/CountyLakeResultsData/'
+nut = pd.read_parquet(nut_dir + 'n_lwrCountyLakeResults.parquet')
 # nut = pd.read_parquet('L:/Public/salford/WetInt/streamcat_wetlandchains.parquet')
 cat_area = LakeCat_template[['COMID','CatAreaSqKm']]
 cat_area.head()
 # add VPU using lookup table
-nut = pd.merge(COMID_VPU, nut, how='left', left_on=['COMID'], right_on=['COMID'])
+#nut = pd.merge(COMID_VPU, nut, how='left', left_on=['COMID'], right_on=['COMID'])
 nut = pd.merge(nut, cat_area, how='left', left_on=['COMID'], right_on=['COMID'])
 # nut = nut.drop('Unnamed: 0', axis=1)
 # nut = nut.drop('...1', axis=1)
 
 # select columns - this part we can modify to iterate through columns
 nut.columns = nut.columns.str.replace('_Cat','')
-cols = [i for i in nut.columns if i not in ["COMID", "VPU", "CatAreaSqKm"]]
+cols = [i for i in nut.columns if i not in ["COMID", "CatAreaSqKm"]]
 # cols = cols[29:31]
 for col in cols:
-    final = nut[['COMID', col, 'CatAreaSqKm', 'VPU']]
+    final = nut[['COMID', col, 'CatAreaSqKm']]
     final = final.rename(columns={col: 'CatSum'})
     final['CatCount'] = 1
     final['CatSum'] = final['CatSum'] * final['CatCount']
     final['CatPctFull'] = 100
-    final = final[['COMID', 'CatAreaSqKm', 'CatCount', 'CatSum', 'CatPctFull', 'VPU']]
-
-    # pq.write_table(table, nut_dir + 'Allocation_and_Accumulation/' + col + '_' + str(i) + '.parquet')
+    final = final[['COMID', 'CatAreaSqKm', 'CatCount', 'CatSum', 'CatPctFull']]
+    table = pa.Table.from_pandas(final)
+    pq.write_table(table, nut_dir + 'Allocation_and_Accumulation/' + col + '.parquet')
