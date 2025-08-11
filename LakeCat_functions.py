@@ -175,89 +175,8 @@ def doStats(OUT_DIR, LYR_DIR, NHD_DIR, FRAMEWORK):
 
         print("ZonalStats Results Complete in : " + str(dt.now() - start))
 
-        if row.accum_type != "Point":
-            b = pd.DataFrame()
-            for zone in rpus.keys():
-                for rpu in rpus[zone]:
-                    b_ = dbf2DF(f"{FRAMEWORK}/rasters/wsheds/wtshds_{rpu}.tif.vat.dbf")
-                    b_["BSNAREASQKM"] = (b_.COUNT * 900) * 1e-6
-                    b_ = b_[["VALUE", "BSNAREASQKM", "COUNT"]]
-                    b_.columns = ["UID", "AreaSqKm", "COUNT"]
-                    b = pd.concat([b, b_])
 
-        if row.accum_type == "Categorical":
-            stats = chkColumnLength(stats, LLyr)
-            cols = stats.columns.tolist()[1:]
-            stats["AREA"] = stats[stats.columns.tolist()[1:]].sum(axis=1)
-            stats = pd.merge(b, stats, how="left", on="UID")
-            stats["PctFull"] = ((stats.AREA * 1e-6) / stats.AreaSqKm) * 100
-            stats = stats[["UID", "AreaSqKm"] + cols + ["PctFull"]]
-            cols = stats.columns[1:]
-            stats.columns = np.append("UID", "Cat" + cols.values)
-            stats = stats.fillna(0)
-
-        if row.accum_type == "Continuous":
-            stats = pd.merge(b, stats, how="left", on="UID")
-            stats["CatPctFull"] = (stats.COUNT_y / stats.COUNT_x) * 100
-            if row.FullTableName in ["Elev","Slope"]:
-                stats = stats[
-                    ["UID", "AreaSqKm", "COUNT_x", "SUM", "MAX", "MIN", "CatPctFull"]
-                ]
-                stats.columns = [
-                    "UID",
-                    "CatAreaSqKm",
-                    "CatCount",
-                    "CatSum",
-                    "CatMax",
-                    "CatMin",
-                    "CatPctFull",
-                ]
-            else:
-                stats = stats[["UID", "AreaSqKm", "COUNT_x", "SUM", "CatPctFull"]]
-                stats.columns = [
-                    "UID",
-                    "CatAreaSqKm",
-                    "CatCount",
-                    "CatSum",
-                    "CatPctFull",
-                ]
-            stats.CatPctFull = stats.CatPctFull.fillna(0)
-        start2 = dt.now()
-        npy = "f{FRAMEWORK}/LakeCat_npy"
-        accum = np.load(f"{FRAMEWORK}/LakeCat_npy/bastards/accum.npz")
-        up = Accumulation(
-            stats, accum["comids"], accum["lengths"], accum["upstream"], "UpCat", "UID"
-        )
-        accum = np.load(f"{FRAMEWORK}/LakeCat_npy/children/accum.npz")
-        ws = Accumulation(
-            stats, accum["comids"], accum["lengths"], accum["upstream"], "Ws", "UID"
-        )
-        stats = pd.merge(stats, up, on="UID")
-        stats = pd.merge(stats, ws, on="UID")
-        cols = stats.columns[1:].tolist()
-        # goto StreamCat to get On-Net-work lake results from assoc. COMIDs
-        stats["inStreamCat"] = 0
-        # Join UID to COMID for final deliverable
-
-        lks = dbf2DF(f"{FRAMEWORK}/off-network.dbf")[["COMID", "UID"]]
-
-        off = pd.merge(lks, stats, on="UID", how="right")
-        off.drop("UID", axis=1, inplace=True)
-        on = getOnNetLakes(
-            row.FullTableName,
-            STREAMCAT_DIR,
-            f"{FRAMEWORK}/joinTables",
-            f"{FRAMEWORK}/LakeCat_npy/onNet_LakeCat.npz",
-            NHD_DIR,
-        )
-        on["inStreamCat"] = 1
-        print("Length of on_Net: " + str(len(on)))
-        tot = pd.concat([off, on])
-        tot.to_csv(f"{OUT_DIR}/{row.FullTableName}.csv", index=False)
-        print("Accumulation Results Complete in : " + str(dt.now() - start2))
-
-
-def Accumulation(arr, COMIDs, lengths, upStream, tbl_type, icol):
+def Accumulation(arr, COMIDs, lengths, upStream, tbl_type, icol, FRAMEWORK):
     """
     __author__ =  "Marc Weber <weber.marc@epa.gov>"
                   "Ryan Hill <hill.ryan@epa.gov>"
@@ -272,58 +191,87 @@ def Accumulation(arr, COMIDs, lengths, upStream, tbl_type, icol):
     upstream              : numpy array of all upstream arrays for each COMID
     tbl_type              : string value of table metrics to be returned
     """
-    coms = np.array(arr[icol])  # Read in COMIDs
-    indices = swapper(coms, upStream)  # Get indices that will be used to map values
-    del upStream  # a and indices are big - clean up to minimize RAM
-    cols = arr.columns[1:]  # Get column names that will be accumulated
-    z = np.zeros(COMIDs.shape)  # Make empty vector for placing values
-    outT = np.zeros(
-        (len(COMIDs), len(arr.columns))
-    )  # Make empty array for placing final values
-    outT[:, 0] = COMIDs  # Define first column as comids
-    # Loop and accumulate values
-    for k in range(0, len(cols)):
-        col = cols[k]
-        c = np.array(arr[col])  # arr[col].fillna(0) keep out zeros where no data!
-        d = c[indices]  # Make final vector from desired data (c)
-        if "PctFull" in col:
-            area = np.array(arr.iloc[:, 1])
-            ar = area[indices]
-            x = 0
-            for i in range(0, len(lengths)):
-                # using nan_to_num in average function to treat NA's as zeros when summing
-                z[i] = np.ma.average(
-                    np.nan_to_num(d[x : x + lengths[i]]), weights=ar[x : x + lengths[i]]
-                )
-                x = x + lengths[i]
+    if row.accum_type != "Point":
+        b = pd.DataFrame()
+        for zone in rpus.keys():
+            for rpu in rpus[zone]:
+                b_ = dbf2DF(f"{FRAMEWORK}/rasters/wsheds/wtshds_{rpu}.tif.vat.dbf")
+                b_["BSNAREASQKM"] = (b_.COUNT * 900) * 1e-6
+                b_ = b_[["VALUE", "BSNAREASQKM", "COUNT"]]
+                b_.columns = ["UID", "AreaSqKm", "COUNT"]
+                b = pd.concat([b, b_])
+
+    if row.accum_type == "Categorical":
+        stats = chkColumnLength(stats, LLyr)
+        cols = stats.columns.tolist()[1:]
+        stats["AREA"] = stats[stats.columns.tolist()[1:]].sum(axis=1)
+        stats = pd.merge(b, stats, how="left", on="UID")
+        stats["PctFull"] = ((stats.AREA * 1e-6) / stats.AreaSqKm) * 100
+        stats = stats[["UID", "AreaSqKm"] + cols + ["PctFull"]]
+        cols = stats.columns[1:]
+        stats.columns = np.append("UID", "Cat" + cols.values)
+        stats = stats.fillna(0)
+
+    if row.accum_type == "Continuous":
+        stats = pd.merge(b, stats, how="left", on="UID")
+        stats["CatPctFull"] = (stats.COUNT_y / stats.COUNT_x) * 100
+        if row.FullTableName in ["Elev","Slope"]:
+            stats = stats[
+                ["UID", "AreaSqKm", "COUNT_x", "SUM", "MAX", "MIN", "CatPctFull"]
+            ]
+            stats.columns = [
+                "UID",
+                "CatAreaSqKm",
+                "CatCount",
+                "CatSum",
+                "CatMax",
+                "CatMin",
+                "CatPctFull",
+            ]
         else:
-            x = 0
-            for i in range(0, len(lengths)):
-                z[i] = np.nansum(d[x : x + lengths[i]])
-                x = x + lengths[i]
-        outT[:, k + 1] = z
-    outT = outT[np.in1d(outT[:, 0], coms), :]  # Remove the extra COMIDs
-    outDF = pd.DataFrame(outT)
-    if tbl_type == "Ws":
-        outDF.columns = np.append(
-            icol, list(map(lambda x: x.replace("Cat", "Ws"), cols.values))
-        )
-    elif tbl_type == "UpCat":
-        outDF.columns = np.append(icol, "Up" + cols.values)
-    else:
-        outDF.columns = [icol] + cols.tolist()
-    for name in outDF.columns:
-        if "AreaSqKm" in name:
-            areaName = name
-        if "PctFull" in name:
-            pct = name
-    outDF.loc[
-        (outDF[areaName] == 0), outDF.columns[2:]
-    ] = (
-        np.nan
-    )  # identifies that there is no area in catchment mask, then NA values across the table
-    outDF.loc[(outDF[pct] == 0), outDF.columns[2:-1]] = np.nan
-    return outDF
+            stats = stats[["UID", "AreaSqKm", "COUNT_x", "SUM", "CatPctFull"]]
+            stats.columns = [
+                "UID",
+                "CatAreaSqKm",
+                "CatCount",
+                "CatSum",
+                "CatPctFull",
+            ]
+        stats.CatPctFull = stats.CatPctFull.fillna(0)
+    start2 = dt.now()
+    npy = "f{FRAMEWORK}/LakeCat_npy"
+    accum = np.load(f"{FRAMEWORK}/LakeCat_npy/bastards/accum.npz")
+    up = Accumulation(
+        stats, accum["comids"], accum["lengths"], accum["upstream"], "UpCat", "UID"
+    )
+    accum = np.load(f"{FRAMEWORK}/LakeCat_npy/children/accum.npz")
+    ws = Accumulation(
+        stats, accum["comids"], accum["lengths"], accum["upstream"], "Ws", "UID"
+    )
+    stats = pd.merge(stats, up, on="UID")
+    stats = pd.merge(stats, ws, on="UID")
+    cols = stats.columns[1:].tolist()
+    # goto StreamCat to get On-Net-work lake results from assoc. COMIDs
+    stats["inStreamCat"] = 0
+    # Join UID to COMID for final deliverable
+
+    lks = dbf2DF(f"{FRAMEWORK}/off-network.dbf")[["COMID", "UID"]]
+
+    off = pd.merge(lks, stats, on="UID", how="right")
+    off.drop("UID", axis=1, inplace=True)
+    on = getOnNetLakes(
+        row.FullTableName,
+        STREAMCAT_DIR,
+        f"{FRAMEWORK}/joinTables",
+        f"{FRAMEWORK}/LakeCat_npy/onNet_LakeCat.npz",
+        NHD_DIR,
+    )
+    on["inStreamCat"] = 1
+    print("Length of on_Net: " + str(len(on)))
+    tot = pd.concat([off, on])
+    tot.to_csv(f"{OUT_DIR}/{row.FullTableName}.csv", index=False)
+    print("Accumulation Results Complete in : " + str(dt.now() - start2))
+
 
 
 def children(token, tree, chkset=None):

@@ -55,4 +55,22 @@ if __name__ == "__main__":
         os.mkdir(f"{FRAMEWORK}/border")
         brdr.to_csv(f"{FRAMEWORK}/border/pct_full.csv")
 
-    doStats(OUT_DIR, LYR_DIR, NHD_DIR, FRAMEWORK)
+    arcpy.CheckOutExtension("spatial")
+    arcpy.env.cellSize = "30"
+
+    if not os.path.exists(OUT_DIR):
+        os.mkdir(OUT_DIR)
+    if not os.path.exists(f"{OUT_DIR}/ZStats"):
+        os.mkdir(f"{OUT_DIR}/ZStats")
+
+    ctl = pd.read_csv(r"ControlTable_LakeCat.csv")
+
+    for _, row in ctl.query("run == 1").iterrows():
+        print(f"running....{row.FullTableName}")
+
+        if not SKIP_ZONE:
+            doStats(OUT_DIR, LYR_DIR, NHD_DIR, FRAMEWORK)
+        
+        #Need to insert read of loop
+        Accumulation()
+        

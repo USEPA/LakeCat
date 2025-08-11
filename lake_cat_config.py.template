@@ -1,4 +1,5 @@
-
+#Swith to skip running zonal stats, true = run zonal stats, false = do not run zonal stats and skip to accumulation
+SKIP_ZONE = False
 
 # location of the landscape layers to perform statistics on
 # Location is in the StreamCat directory
